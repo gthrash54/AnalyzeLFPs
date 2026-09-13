@@ -1,0 +1,89 @@
+# Privacy policy for reading recordings.
+#
+# What counts as an identifier depends on how a site names and exports its files,
+# so it is declared here rather than assumed in code. A site that has not thought
+# about this gets the conservative defaults.
+
+# Whether raw filenames and directory names are known to be free of identifiers.
+#
+# This lab: false, for every format. An earlier version of this file asserted
+# that the timestamp embedded in raw TDT filenames was the UPLOAD time, on days
+# deliberately separated from the procedure. That claim was tested against the
+# archive on 2026-09-09 and is false. For each staged tank, the YYMMDD field in
+# the filename was compared against the acquisition date in that block's own
+# Notes.txt:
+#
+#     287 of 401 tanks   filename date EQUALS the acquisition date
+#     114 of 401 tanks   differ by exactly one day (timezone, or a block
+#                        crossing midnight)
+#       0 of 401 tanks   consistent with an upload on a separate day
+#
+# The filenames encode the date of surgery to within a day. Guardrail G13 reads
+# its effective severity from this setting, so a wrong value here hands a
+# non-overridable privacy check a blanket pass.
+#
+# Set false for any site that has not confirmed otherwise. When false, the
+# reader withholds the filename from metadata and nothing may write a raw path
+# into a derivative, a run record, a log, or a figure.
+# Declared per format, because filename safety is a property of how one
+# acquisition system names its exports, not of the site. A plain `true` or
+# `false` here still works and applies to every format; a format left out of
+# the mapping below is treated as false.
+filenames_deidentified:
+  # TDT: false. The embedded timestamp is the ACQUISITION time, not an upload
+  # time, so a surgery date follows directly from the filename. Measured, not
+  # assumed; the counts are in the paragraph above.
+  tdt_mat: false
+  tdt_tank: false
+
+  # BrainVision and EDF: false, because the reasoning above does not carry
+  # over. Filenames in this archive were found to embed the acquisition date
+  # and time directly, in the form `..._date_<YYYYMMDD> time_<HHMM>...`, from
+  # which a procedure date follows. Set a format to true only after confirming
+  # that its own export naming is safe.
+  brainvision: false
+  edf: false
+
+# Metadata fields that may carry an identifier regardless of filename policy.
+# Withheld from Recording.metadata and reachable only through
+# read_restricted_metadata, which exists for de-identification, not analysis.
+#
+# Names are matched exactly, per format. Extend when a new acquisition system
+# turns out to store something sensitive somewhere new.
+# Acquisition date and time are NOT restricted here. They record when a block was
+# recorded, which this lab has judged non-sensitive, and they are useful for
+# ordering sessions and matching against an operative log. A site that disagrees
+# adds them back to its own list.
+restricted_metadata_fields:
+  tdt_mat:
+    - Subject        # study ID here, but not guaranteed to be at another site
+    - Experiment
+    - User           # operator name
+    - blockname
+    - tankpath       # acquisition path, may embed a subject code
+
+  # BrainVision and EDF are read through MNE, so the field names below are
+  # `mne.Info` keys rather than anything the vendor chose.
+  #
+  # meas_date is restricted for both. An MNE meas_date is the amplifier's
+  # acquisition timestamp, from which a surgery date follows directly. The
+  # earlier note here claimed the TDT case was different because its timestamp
+  # was an upload time; that claim was measured and found false (see the
+  # counts at the top of this file), so the two cases are the same and neither
+  # is exempt. A site that exports differently, or that has judged the date
+  # non-sensitive, removes the line.
+  brainvision:
+    - subject_info   # name, sex, birthday, hospital id, when the header has them
+    - meas_date      # acquisition timestamp; a surgery date follows from it
+    - experimenter   # operator name
+    - description
+  edf:
+    - subject_info   # EDF+ packs the patient identification field into this
+    - meas_date
+    - experimenter
+    - description
+
+# Even where filenames are de-identified, results refer to recordings by manifest
+# key rather than by path. This is about provenance and portability as much as
+# privacy: a path is machine-specific, a manifest key is not.
+reference_recordings_by: [study_id, session, acquisition]

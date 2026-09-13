@@ -1,0 +1,160 @@
+# Controlled vocabularies.
+#
+# These are the enums that would otherwise be hardcoded in Python and then be
+# painful to extend for the next subject, the next target, or the next lab. A
+# new value is a line here, not a code change. Validation reads this file; if a
+# manifest uses a term that is not listed, that is an error naming the term, not
+# a silent pass.
+
+# Anatomical or functional role of a channel. Extend freely.
+regions:
+  stn:   {label: "STN",   kind: depth,   description: "Subthalamic nucleus"}
+  gpi:   {label: "GPi",   kind: depth,   description: "Globus pallidus internus"}
+  gpe:   {label: "GPe",   kind: depth,   description: "Globus pallidus externus"}
+  vim:   {label: "VIM",   kind: depth,   description: "Ventral intermediate nucleus of thalamus"}
+  ecog:  {label: "ECoG",  kind: surface, description: "Cortical strip, site unspecified"}
+  emg:   {label: "EMG",   kind: muscle,  description: "Surface electromyography"}
+  audio: {label: "Audio", kind: aux,     description: "Microphone"}
+  video: {label: "Video", kind: aux,     description: "Camera frame times on the neural clock"}
+  stim:  {label: "Stim",  kind: aux,     description: "Stimulation marker or monitor"}
+  other: {label: "Other", kind: aux,     description: "Anything not covered above"}
+
+# Task conditions. Names appear in figures, so keep them short and stable.
+#
+# `aliases` are the words a person uses when asking for a condition by
+# description rather than by name. The agent matches a question against condition
+# names first and these second, so "beta during speech" resolves to `overt`
+# without the word "speech" being written into Python. A lab whose paradigm is
+# not speech adds its own vocabulary here rather than editing the agent.
+#
+# Listing a condition here does not create it. A condition is analyzable only
+# when `windows.csv` defines a window for it in a given session, so the entries
+# below that no lab has used yet cost nothing.
+conditions:
+  overt:
+    label: "Overt speech"
+    description: "Passage read aloud"
+    aliases: [speech, speaking, spoken, aloud, talking, vocalization]
+  inner:
+    label: "Inner speech"
+    description: "Passage read silently"
+    aliases: [imagined speech, covert speech, silent reading, inner voice]
+  metro:
+    label: "Metronome"
+    description: "Rhythmic movement, no speech. Motor control condition."
+    aliases: [metronome, rhythm, tapping, pacing]
+  rest:
+    label: "Rest"
+    description: "No task. Quiet baseline."
+    aliases: [resting, resting state, baseline, quiet, no task]
+
+  # Beyond speech. These exist so a motor, cognitive, sensory or stimulation
+  # paradigm can be described in the manifest and asked about in plain language
+  # without a code change.
+  move:
+    label: "Movement"
+    description: "Voluntary motor execution, task unspecified."
+    aliases: [movement, motor, moving, reaching, gripping, execution]
+  imagery:
+    label: "Motor imagery"
+    description: "Movement imagined without execution."
+    aliases: [motor imagery, imagined movement, imagined motor]
+  cue:
+    label: "Cue"
+    description: "Sensory cue or stimulus presentation."
+    aliases: [stimulus, stimuli, cue onset, sensory, tone, flash]
+  task:
+    label: "Cognitive task"
+    description: "Cognitive engagement, task named in the window notes."
+    aliases: [cognitive, working memory, attention, decision, n back]
+  dbs_on:
+    label: "DBS on"
+    description: "Therapeutic stimulation delivered."
+    aliases: [dbs on, stim on, stimulation on, on stim]
+  dbs_off:
+    label: "DBS off"
+    description: "Stimulation withheld. Control for a stimulation contrast."
+    aliases: [dbs off, stim off, stimulation off, off stim]
+
+# How a window was established. 'assumed' exists so that an unverified window is
+# visibly unverified rather than indistinguishable from a measured one.
+window_sources:
+  - microphone        # voice envelope
+  - emg               # muscle activity
+  - video             # camera frame times
+  - task_marker       # a real marker in the file
+  - datasheet         # handwritten or printed record
+  - assumed           # nothing measured this. Treat with suspicion.
+  - synthetic         # generated, not recorded. Only ever correct for a demo or
+                      # a test fixture: there is no subject and no clinical
+                      # claim to be wrong about. `dbsspeech seed` writes this,
+                      # and without it in the vocabulary the demo project fails
+                      # `dbsspeech validate`, which is the first thing a new
+                      # reader is told to run.
+
+# Lifecycle of a window definition.
+window_status:
+  - draft             # proposed, not reviewed
+  - in_use            # current best
+  - under_revision    # known inadequate, replacement in progress
+  - superseded        # replaced; kept for provenance
+
+# Coordinate spaces a contact position may be given in. A space is what makes a
+# position comparable, or not, between subjects.
+coordinate_spaces:
+  MNI152NLin2009bAsym:
+    label: "MNI152NLin2009b asymmetric"
+    comparable_across_subjects: true
+    description: "Lead-DBS default template space."
+  MNI152NLin6Asym:
+    label: "MNI152NLin6 asymmetric"
+    comparable_across_subjects: true
+    description: "FSL's MNI152 template."
+  ACPC:
+    label: "AC-PC"
+    comparable_across_subjects: true
+    description: "Midcommissural origin. Common in stereotactic reports."
+  native:
+    label: "Native"
+    comparable_across_subjects: false
+    description: >
+      This subject's own scan. Positions are correct for this subject and mean
+      nothing between subjects, so a group claim needs a template space.
+
+# Where a coordinate came from. Provenance, not method detail.
+coordinate_sources:
+  - lead_dbs          # Lead-DBS reconstruction
+  - imaging           # measured from post-operative imaging by another route
+  - stereotactic      # planned or recorded stereotactic target
+  - manual            # read off a report or a figure. Treat with suspicion.
+
+# Re-referencing schemes. See docs/guardrails.md: monopolar is retained only so
+# that a montage comparison can be run, never as an analysis default.
+references:
+  monopolar:
+    label: "Monopolar"
+    safe_default: false
+    warning: >
+      All contacts share a reference, so any common-mode signal appears as an
+      effect on every channel at once, with little spread between channels. This
+      has produced a large spurious high-frequency effect across a whole array
+      that vanished entirely under a bipolar montage. See guardrail G1.
+  bipolar_vertical:
+    label: "Bipolar, vertical"
+    safe_default: true
+    description: "Adjacent contacts along the shank, within a segment column."
+  bipolar_horizontal:
+    label: "Bipolar, horizontal"
+    safe_default: true
+    description: "Adjacent segments within a row."
+  bipolar_adjacent:
+    label: "Bipolar, adjacent"
+    safe_default: true
+    description: "Nearest neighbor by contact order, montage-aware."
+  car:
+    label: "Common average"
+    safe_default: false
+    warning: >
+      Averaging across a small contact count spreads a strong local signal into
+      every other channel. Reasonable for a dense ECoG strip, risky for an
+      8-contact lead.

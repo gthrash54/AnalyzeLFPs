@@ -1,0 +1,202 @@
+# Quality-control thresholds.
+#
+# A flag is a proposal with evidence, never a decision. Detection and decision
+# are separate so a reviewer can see exactly why something was flagged and
+# overrule it; see docs/schema.md and src/dbsspeech/qc/.
+#
+# Every detector can be disabled here rather than deleted from the code, because
+# a PI disagreeing that a detector should exist is different from a bug.
+#
+# Values are starting points calibrated on synthetic data. They are guesses until
+# someone who has sat in the OR with these signals corrects them, which is what
+# step P2.5 exists for. Record every correction in docs/decisions.md.
+
+# Robust statistics over 4 to 8 contacts are fragile, so outlier detectors
+# compare within a group and refuse to propose an action below this count.
+# Under it they report the evidence and emit an informational flag instead.
+# Whether a recipe refuses to run on a subject that has not been signed off.
+#
+# True is the intent: no analysis on unreviewed data, enforced in the package so
+# every path reaches it, including a notebook. Set false only while the QC layer
+# is being calibrated and no result is being reported to anyone.
+enforce_gate: true
+
+min_channels_for_outlier_stats: 4
+
+# What counts as comparable, for the detectors that compare a channel against its
+# peers.
+#
+#   region           all contacts on a lead together
+#   region_and_kind  rings compared with rings, segments with segments
+#
+# Default is region_and_kind. A ring contact has roughly twice a segment's
+# surface area, so it reads systematically lower impedance and different noise
+# characteristics. Pooling them makes every ring look like an outlier for being
+# a ring. Observed directly on the first real recording: with `region`, both
+# leads' ventral rings were flagged for high-frequency noise, and their values
+# were BELOW the group median rather than above.
+#
+# Set to `region` to reproduce the pooled behavior. With region_and_kind, a
+# 1-3-3-1 lead has only two ring contacts, which is below the minimum above, so
+# rings correctly report insufficient_channels rather than a threshold that
+# cannot be supported.
+outlier_grouping: region_and_kind
+
+# What a reviewer may do about a flag, and what each choice actually does.
+#
+# Here rather than in the interface because these are decisions about data, and
+# the words somebody reads while deciding should be reviewable in a diff. A lab
+# that handles an artifact differently changes this file, not a component.
+#
+# `none` matters more than it looks. Approving a flag says the observation is
+# real; the action says what to do about it, and those are separate. The case
+# that proves it is a stimulating contact: the peakedness is real, and excluding
+# the contact would delete the signal the recording was made for.
+actions:
+  exclude_channel:
+    label: Exclude the channel
+    description: Drop this contact from every analysis of this subject.
+  notch:
+    label: Notch it out
+    description: >-
+      Filter the offending frequency and its harmonics, keeping the channel.
+  annotate_window:
+    label: Annotate the window
+    description: >-
+      Mark the affected span. Nothing is deleted; recipes see the annotation and
+      the run record carries it.
+  exclude_trial:
+    label: Exclude the trial
+    description: Drop this trial, keeping the channel and the rest of the recording.
+  none:
+    label: Keep it as it is
+    description: >-
+      The flag is real and nothing is removed. Choose this when the thing
+      detected is the signal of interest, and say why.
+
+# Flag types that are not detectors in their own right. The peer-comparison
+# detectors raise these when they cannot judge at all, so they carry no
+# threshold and propose no action. They still need words a reviewer can read:
+# without an entry here the review screen falls back to the raw type name, which
+# is how `insufficient_channels` reached a person as `insufficient_channels`.
+flag_types:
+  insufficient_channels:
+    label: Too few contacts to compare
+    means: >-
+      This peer group has fewer contacts than the minimum, so no outlier
+      statistic can be supported. It says nothing is known about the channel,
+      not that something is wrong with it.
+
+detectors:
+
+  flat_channel:
+    enabled: true
+    label: Flat channel
+    means: >-
+      The contact barely varies. Usually disconnected, broken, or not in tissue.
+    severity: high
+    # Standard deviation below this fraction of the median channel's, in the
+    # recording's own units, so it does not depend on amplifier scaling.
+    std_fraction_of_median: 0.01
+    proposed_action: exclude_channel
+
+  variance_outlier:
+    enabled: true
+    label: Unusually loud or quiet
+    means: >-
+      Overall power far from the other contacts on the same lead, which usually
+      says more about the contact than about the brain.
+    severity: med
+    # Robust z on log standard deviation, within region, using median and MAD.
+    robust_z_max: 5.0
+    proposed_action: exclude_channel
+
+  kurtosis_outlier:
+    enabled: true
+    label: Spiky channel
+    means: >-
+      Far more peaked than its neighbours: spikes, movement artifact, or
+      stimulation.
+    severity: med
+    # Median excess kurtosis across fixed-length blocks, per channel.
+    #
+    # Kurtosis over a whole record grows with its length, so a threshold on it
+    # means different things at different durations: the same channels measured
+    # 170 over 60 s and 1429 over 515 s. Taking the median across blocks removes
+    # that, and asks the question the detector was always meant to ask: how
+    # heavy-tailed is a typical block of this channel.
+    #
+    # Still uncalibrated. Calibrate against real recordings, with someone who
+    # knows the paradigm, before trusting it.
+    block_s: 10.0
+    max_excess_kurtosis: 20.0
+    proposed_action: exclude_channel
+
+  hf_noise_ratio:
+    enabled: true
+    label: High-frequency noise
+    means: >-
+      Too much energy above the physiological range, which usually means
+      electrical noise rather than brain activity.
+    severity: med
+    # Power in the high band over power in the low band. A channel dominated by
+    # high-frequency content relative to its region is usually noise, not signal.
+    low_band_hz: [1.0, 40.0]
+    high_band_hz: [100.0, 200.0]
+    robust_z_max: 5.0
+    proposed_action: exclude_channel
+
+  line_noise:
+    enabled: true
+    label: Mains hum
+    means: >-
+      Mains frequency and its harmonics dominate the spectrum.
+    severity: low
+    # Prominence at the mains fundamental and harmonics, relative to neighboring
+    # bins. Line noise is expected in the OR; this flags channels where it
+    # dominates, and the action is a notch rather than exclusion.
+    neighborhood_hz: 4.0
+    ratio_max: 10.0
+    proposed_action: notch
+
+  clipping:
+    enabled: true
+    label: Clipped signal
+    means: >-
+      The amplifier hit its limit, so the true amplitude in those samples is
+      unknown and cannot be recovered.
+    severity: high
+    # Fraction of samples at or beyond the channel's own extreme value. A
+    # saturated amplifier repeats its rail, so the extreme value recurs.
+    fraction_at_rail_max: 0.001
+    proposed_action: exclude_channel
+
+  amplitude_window:
+    enabled: true
+    label: Amplitude episode
+    means: >-
+      A stretch far outside this channel's own distribution. An episode, not a
+      whole bad channel.
+    severity: med
+    # Robust z on log peak-to-peak per window, within a channel, with contiguous
+    # windows merged into one episode.
+    #
+    # Was a bare ratio to the channel's median, which has no interpretable
+    # false-positive rate, and emitted one flag per second: 238 flags on a real
+    # 515 s block for what a person would call a handful of events. An artifact
+    # is an episode, not five separate seconds.
+    #
+    # Still uncalibrated.
+    window_s: 1.0
+    robust_z_max: 5.0
+    proposed_action: annotate_window
+
+  trial_amplitude_outlier:
+    enabled: true
+    label: Outlying trial
+    means: >-
+      One trial far from the others on this contact.
+    severity: med
+    # Per-condition-window peak-to-peak, robust z within a channel.
+    robust_z_max: 5.0
+    proposed_action: exclude_trial

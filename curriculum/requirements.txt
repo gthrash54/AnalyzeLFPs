@@ -1,0 +1,30 @@
+# Dependencies for the lessons ALONE, without installing the dbsspeech package.
+#
+# Verified on 2026-09-13 by building a clean virtual environment with nothing
+# else in it, confirming `import dbsspeech` fails there, and executing one
+# solutions notebook from each of the eleven courses. Ten passed on
+# numpy/scipy/matplotlib; 09_decoding needed scikit-learn and
+# 06_connectivity/04 needed fooof, which is why those two are here.
+#
+# The lessons do not import the package. Six notebooks mention it in comments
+# of the form "Production equivalent: dbsspeech.preprocess.resample...", which
+# point at the code a lesson is teaching the mathematics behind. Those are
+# cross-references, not dependencies.
+#
+#     python -m venv .venv && . .venv/bin/activate
+#     pip install -r curriculum/requirements.txt
+#     jupyter lab curriculum/
+#
+# Loose lower bounds rather than pins: these are teaching notebooks and they
+# should keep working as the libraries move. Verified against numpy 2.5.3,
+# scipy 1.18.1, matplotlib 3.11.2.
+
+numpy>=1.26
+scipy>=1.11
+matplotlib>=3.8
+scikit-learn>=1.4
+fooof>=1.1
+
+# Only needed to EXECUTE the notebooks, not to read them. Omit if you already
+# have a Jupyter installation.
+jupyterlab>=4.0

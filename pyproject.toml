@@ -1,0 +1,138 @@
+[project]
+name = "analyzedbs"
+version = "0.1.0"
+description = "Analysis for intraoperative DBS (STN, GPi) and ECoG recordings, with scientific guardrails, a QC approval gate, and run provenance."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Garrett Thrash" }]
+keywords = ["dbs", "ecog", "electrophysiology", "neuroscience", "mne"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+
+dependencies = [
+    "mne",
+    "mne-bids",
+    "pybv",
+    "numpy",
+    "scipy",
+    "pandas",
+    "pyarrow",
+    "matplotlib",
+    "pydantic",
+    "pyyaml",
+    "fastapi",
+    "uvicorn",
+    "py-neuromodulation",
+    "h5py",
+    # FastAPI needs this to parse multipart uploads. Runtime, not dev: the
+    # upload route fails at import time without it.
+    "python-multipart",
+    "argon2-cffi>=25.1.0",
+    "pactools>=0.3.1",
+]
+
+[project.scripts]
+dbsspeech = "dbsspeech.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    # starlette's TestClient needs an httpx implementation.
+    "httpx2",
+    # The curriculum in curriculum/ ships as .ipynb and the Learn page hands
+    # students those files to download. Without a kernel the documented setup
+    # produces an environment that cannot open its own teaching material.
+    "jupyterlab",
+    "ipykernel",
+    # Imported directly by the curriculum: scikit-learn by module M2, fooof by
+    # module C4. Both currently arrive transitively through py-neuromodulation,
+    # which is not a contract. fooof already warns that it is superseded by
+    # specparam, so when that migration happens this pin is what keeps C4 running.
+    "scikit-learn",
+    "fooof",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dbsspeech"]
+
+[tool.uv]
+default-groups = []
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "httpx2",
+    # The curriculum in curriculum/ ships as .ipynb and the Learn page hands
+    # students those files to download. Without a kernel the documented setup
+    # produces an environment that cannot open its own teaching material.
+    "jupyterlab",
+    "ipykernel",
+    # Imported directly by the curriculum: scikit-learn by module M2, fooof by
+    # module C4. Both currently arrive transitively through py-neuromodulation,
+    # which is not a contract. fooof already warns that it is superseded by
+    # specparam, so when that migration happens this pin is what keeps C4 running.
+    "scikit-learn",
+    "fooof",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# "." so tests/ is importable as a package and fixture builders can be shared.
+pythonpath = ["src", "."]
+markers = [
+    "unit: fast, isolated tests with no I/O and no real recordings",
+    "integration: multi-component tests using synthetic or fixture data",
+    "realdata: tests that read real recordings from data/; skipped when data/ is empty or missing",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+target-version = "py311"
+extend-exclude = [
+    # Git worktrees live here. They hold other checkouts of this same repo, at
+    # other commits and mid-change, so linting them reports another branch's
+    # unfinished work as errors in this one.
+    ".claude/worktrees",
+    # Teaching notebooks. Ruff lints .ipynb by default, and a curriculum cell is
+    # written to be read on a slide, not to satisfy a line-length rule. The
+    # package code they teach is linted; the lesson is not.
+    "*.ipynb",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# The curriculum generators are mostly embedded notebook prose held in string
+# literals. Wrapping those lines to 100 characters would break the text a student
+# reads, so line length is not checked here. Everything else still is.
+"curriculum/tools/*.py" = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# B008 forbids calls in argument defaults, which is exactly how FastAPI declares
+# dependencies and file uploads. These three are the framework's own idiom and
+# are evaluated once at import, so the mutable-default hazard B008 exists for
+# does not apply. Nothing else is exempted.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.File",
+    "dbsspeech.api.main.require_role",
+]
+
+[tool.coverage.run]
+source = ["src/dbsspeech"]

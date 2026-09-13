@@ -1,0 +1,195 @@
+# Lead geometry definitions.
+#
+# Contact naming is a property of the implanted device, not of this project, so
+# it lives here rather than being fixed once in the schema. A recording declares
+# which model was implanted (manifest/leads.csv); this file says what the
+# contacts of that model are called and how they are arranged.
+#
+# Two naming layers, deliberately separate:
+#   id     the manufacturer's own contact label. What the implant record and the
+#          programmer say. Never invented by us.
+#   alias  the short label used in figures and tables. Optional. Defaults to id.
+#
+# VERIFY BEFORE USE: vendor contact numbering differs between manufacturers and
+# has changed across product generations. Confirm the `id` values against the
+# implant record or the programmer screenshot for the actual case before
+# trusting a figure legend. Where a model below is marked `confirmed: false`,
+# the geometry is right but the numbering has not been checked against a real
+# implant record in this lab.
+
+# Geometry shorthand: contacts per row, ventral to dorsal.
+#   [1, 3, 3, 1]  directional: ring, segment row, segment row, ring
+#   [1, 1, 1, 1]  non-directional: four rings
+#
+# row_spacing_mm is the CENTRE-TO-CENTRE distance between adjacent contact rows,
+# not the gap between contact edges. The distinction matters and vendor
+# literature uses "spacing" for both: a lead described as having "1.5 mm
+# spacing" may have rows 1.5 mm apart, or 1.5 mm of insulation between 1.5 mm
+# contacts, which is a 3.0 mm pitch. Getting it wrong scales every distance
+# computed from the geometry.
+#
+# Two of the entries below carry a number transcribed from their own model
+# string, and `spacing_confirmed: false` says that the number has not been
+# checked against an implant record or a vendor drawing, and that which
+# convention the model string meant is unknown. `spacing_confirmed` is separate
+# from `confirmed`, which is about contact numbering; a lead can have trustworthy
+# numbering and unverified geometry or the reverse.
+#
+# Anything computing a physical distance must refuse to run on an unconfirmed
+# spacing rather than proceed with it. Nothing in the package reads this field
+# yet; REC 5 in the curriculum is what motivated adding it.
+
+leads:
+
+  # ---- Generic placeholders ------------------------------------------------
+  # Use one of these when the geometry is established electrically (from the
+  # ring-segment-ring impedance signature) but the manufacturer is not known.
+  # Replace with the real model once the implant record is checked. Keeping a
+  # named placeholder is better than guessing a vendor, because vendors number
+  # the same geometry differently and a wrong guess mislabels every figure.
+  unknown_directional_1331:
+    manufacturer: unknown
+    model: unknown directional, 8 contacts, 1-3-3-1
+    directional: true
+    n_contacts: 8
+    geometry: [1, 3, 3, 1]
+    # Vendor unknown, so the geometry cannot be looked up.
+    row_spacing_mm: null
+    spacing_confirmed: false
+    confirmed: false
+    notes: >
+      Geometry known, vendor not. The alias column is what appears in figures, so
+      changing an alias means regenerating any figure already produced with it.
+    contacts:
+      - {id: "1",  alias: "0",  row: 0, kind: ring}
+      - {id: "2a", alias: "1a", row: 1, kind: segment, segment: a}
+      - {id: "2b", alias: "1b", row: 1, kind: segment, segment: b}
+      - {id: "2c", alias: "1c", row: 1, kind: segment, segment: c}
+      - {id: "3a", alias: "2a", row: 2, kind: segment, segment: a}
+      - {id: "3b", alias: "2b", row: 2, kind: segment, segment: b}
+      - {id: "3c", alias: "2c", row: 2, kind: segment, segment: c}
+      - {id: "4",  alias: "3",  row: 3, kind: ring}
+
+  # ---- Directional, 1-3-3-1 ------------------------------------------------
+  medtronic_sensight:
+    manufacturer: Medtronic
+    model: SenSight B33005 / B33015
+    directional: true
+    n_contacts: 8
+    geometry: [1, 3, 3, 1]
+    row_spacing_mm: null
+    spacing_confirmed: false
+    confirmed: false
+    contacts:
+      - {id: "1",  row: 0, kind: ring}
+      - {id: "2a", row: 1, kind: segment, segment: a}
+      - {id: "2b", row: 1, kind: segment, segment: b}
+      - {id: "2c", row: 1, kind: segment, segment: c}
+      - {id: "3a", row: 2, kind: segment, segment: a}
+      - {id: "3b", row: 2, kind: segment, segment: b}
+      - {id: "3c", row: 2, kind: segment, segment: c}
+      - {id: "4",  row: 3, kind: ring}
+
+  boston_cartesia:
+    manufacturer: Boston Scientific
+    model: Vercise Cartesia directional
+    directional: true
+    n_contacts: 8
+    geometry: [1, 3, 3, 1]
+    row_spacing_mm: null
+    spacing_confirmed: false
+    confirmed: false
+    contacts:
+      - {id: "1", row: 0, kind: ring}
+      - {id: "2", row: 1, kind: segment, segment: a}
+      - {id: "3", row: 1, kind: segment, segment: b}
+      - {id: "4", row: 1, kind: segment, segment: c}
+      - {id: "5", row: 2, kind: segment, segment: a}
+      - {id: "6", row: 2, kind: segment, segment: b}
+      - {id: "7", row: 2, kind: segment, segment: c}
+      - {id: "8", row: 3, kind: ring}
+
+  abbott_infinity_directional:
+    manufacturer: Abbott
+    model: Infinity directional
+    directional: true
+    n_contacts: 8
+    geometry: [1, 3, 3, 1]
+    row_spacing_mm: null
+    spacing_confirmed: false
+    confirmed: false
+    contacts:
+      - {id: "1",  row: 0, kind: ring}
+      - {id: "2a", row: 1, kind: segment, segment: a}
+      - {id: "2b", row: 1, kind: segment, segment: b}
+      - {id: "2c", row: 1, kind: segment, segment: c}
+      - {id: "3a", row: 2, kind: segment, segment: a}
+      - {id: "3b", row: 2, kind: segment, segment: b}
+      - {id: "3c", row: 2, kind: segment, segment: c}
+      - {id: "4",  row: 3, kind: ring}
+
+  # ---- Non-directional -----------------------------------------------------
+  medtronic_3389:
+    manufacturer: Medtronic
+    model: 3389 (1.5 mm spacing)
+    directional: false
+    n_contacts: 4
+    geometry: [1, 1, 1, 1]
+    # Transcribed from the model string above. Which convention it uses is unverified.
+    row_spacing_mm: 1.5
+    spacing_confirmed: false
+    confirmed: false
+    contacts:
+      - {id: "0", row: 0, kind: ring}
+      - {id: "1", row: 1, kind: ring}
+      - {id: "2", row: 2, kind: ring}
+      - {id: "3", row: 3, kind: ring}
+
+  medtronic_3387:
+    manufacturer: Medtronic
+    model: 3387 (3.0 mm spacing)
+    directional: false
+    n_contacts: 4
+    geometry: [1, 1, 1, 1]
+    # Transcribed from the model string above. Which convention it uses is unverified.
+    row_spacing_mm: 3.0
+    spacing_confirmed: false
+    confirmed: false
+    contacts:
+      - {id: "0", row: 0, kind: ring}
+      - {id: "1", row: 1, kind: ring}
+      - {id: "2", row: 2, kind: ring}
+      - {id: "3", row: 3, kind: ring}
+
+  boston_vercise_standard:
+    manufacturer: Boston Scientific
+    model: Vercise standard (8 ring)
+    directional: false
+    n_contacts: 8
+    geometry: [1, 1, 1, 1, 1, 1, 1, 1]
+    row_spacing_mm: null
+    spacing_confirmed: false
+    confirmed: false
+    contacts:
+      - {id: "1", row: 0, kind: ring}
+      - {id: "2", row: 1, kind: ring}
+      - {id: "3", row: 2, kind: ring}
+      - {id: "4", row: 3, kind: ring}
+      - {id: "5", row: 4, kind: ring}
+      - {id: "6", row: 5, kind: ring}
+      - {id: "7", row: 6, kind: ring}
+      - {id: "8", row: 7, kind: ring}
+
+# Geometry detection. This CHECKS a declared model; it never replaces the
+# declaration. The manifest is authoritative (see CLAUDE.md), because impedance
+# distinguishes rings from segments but cannot tell one vendor from another.
+detection:
+  method: impedance_ring_segment_signature
+  rationale: >
+    Segment contacts have roughly half the surface area of a ring contact, so
+    they read substantially higher impedance. A 1-3-3-1 lead therefore shows a
+    low-high-high-low pattern down the shank, which identifies both the geometry
+    and the ventral-to-dorsal ordering.
+  segment_to_ring_ratio_min: 1.5
+  action_on_mismatch: flag
+  never: silently_relabel

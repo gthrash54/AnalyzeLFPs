@@ -1,0 +1,95 @@
+# Raw recordings. Never committed.
+# Both lines are needed: `/data/**` covers the contents, `/data` covers the
+# case where data/ is itself a symlink to the working copy or the archive, which
+# git treats as a file and would otherwise happily commit, absolute path and all.
+/data
+/data/**
+
+# Recipe outputs. Nothing under here is committed, including the run summaries.
+#
+# There used to be an exception, `!/derivatives/**/summary.json`, on the
+# reasoning that a summary is small, text, and needed to reproduce a result.
+# That is true and it is still the wrong trade for a public repository: a
+# summary is derived from a real recording, and it carries that subject's
+# measured values even though it carries no identifier. Eight of them were
+# staged for the first public commit before anyone noticed, because they match
+# none of the obvious patterns you would grep for.
+#
+# A run record in `runs/` carries the provenance needed to regenerate a result.
+# The summary itself does not need to travel with the code.
+/derivatives/
+
+# Accounts and sessions. Not derivatives: losing these is not "re-run the
+# pipeline", it is every past decision's attribution pointing at nothing. The
+# backup script covers this directory.
+/var/
+
+# The demo project. Built in seconds by `dbsspeech seed`, and committing it would
+# put a second subject's runs and QC decisions in the provenance log beside the
+# real ones.
+/demo/
+
+# Deployment settings and certificates. .env.example is the committed template;
+# docker/.env is one machine's answers and is where anyone would put a secret.
+docker/.env
+docker/tls/
+
+# Agent state. Per-machine, and .claude/settings.json carried a personal home
+# path in its permission globs. `.claude/worktrees/` in particular held 1.4 GB
+# across four full checkouts of this same repository, one with a real virtual
+# environment inside it, which `git add -A` would happily have staged.
+#
+# `.vscode/` is deliberately NOT here. It uses ${workspaceFolder}, names no
+# machine, and tells a contributor which interpreter, formatter and test runner
+# the project expects.
+/.claude/
+
+# Environments and build output
+.venv
+node_modules/
+web/node_modules/
+web/dist/
+web/.vite/
+*.tsbuildinfo
+
+# Recording formats, wherever they land
+*.eeg
+*.vhdr
+*.vmrk
+*.fif
+
+# Exception, kept as a safety net rather than as a requirement. The synthetic
+# fixtures contain no patient data, so committing one would be harmless. In
+# practice none is committed: `tests/fixtures/make_*_fixture.py` generates them
+# at test time, which is why the suite passes on a clean checkout with nothing
+# under tests/fixtures but Python. These four lines exist so that a fixture
+# someone does commit deliberately is not silently swallowed by the format
+# patterns above.
+!tests/fixtures/**/*.eeg
+!tests/fixtures/**/*.vhdr
+!tests/fixtures/**/*.vmrk
+!tests/fixtures/**/*.fif
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# macOS
+.DS_Store
+
+# Private material, kept OUTSIDE this repository and ignored here as a backstop.
+# The publish plan builds a fresh commit with `git add -A`, so anything private
+# sitting in the tree is one mistaken add away from being published permanently.
+# Both of these live in a sibling directory instead:
+#   findings-cohort-PRIVATE.md   cohort observations naming real study IDs
+#   docs/review/                 the security audit, including findings still open
+/docs/review/
+*-PRIVATE.md

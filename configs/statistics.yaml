@@ -1,0 +1,125 @@
+# Normalization choices, and what each one means.
+#
+# The z column is (value - centre) / scale. Both halves are chosen separately,
+# because they answer different questions: the centre decides what a result is
+# compared against, the scale decides what counts as a large difference.
+#
+# Every option carries its own explanation. These strings are not decoration:
+# they are exported into the recipe's JSON schema so the interface can show them
+# beside each choice, and the resolved pair is written into the run record and
+# the figure caption. A reader should never have to guess what a z meant.
+#
+# Adding an option is an entry here plus a branch in dbsspeech.stats.normalize.
+
+centers:
+  grand_mean:
+    label: "Grand mean across conditions"
+    description: >
+      Compare each condition against the average of all conditions in the run.
+    when_to_use: >
+      When no condition is a trustworthy baseline, or when you want a symmetric
+      comparison that does not privilege one condition.
+    caveat: >
+      The centre moves when you change which conditions are included, so two runs
+      over different condition sets are not directly comparable.
+
+  condition:
+    label: "A named baseline condition"
+    description: >
+      Compare every condition against one chosen condition, usually rest.
+    when_to_use: >
+      The conventional framing, and the one most directly comparable to published
+      work and to figures you have already produced.
+    caveat: >
+      Inherits everything wrong with the baseline window. If that window is under
+      revision, every result depending on it is flagged by guardrail G10.
+
+  whole_recording:
+    label: "All segments pooled"
+    description: >
+      Compare against the mean over every segment in the run, weighted by how
+      much data each condition contributed.
+    when_to_use: >
+      When conditions differ a lot in duration and you want the longer ones to
+      carry more weight in defining the centre.
+    caveat: >
+      The task periods sit inside their own baseline, which shrinks every effect
+      toward zero by construction. The more of the recording is task, the worse.
+
+  none:
+    label: "No centring"
+    description: >
+      Do not subtract anything. z becomes the value divided by the scale.
+    when_to_use: >
+      When you want a signal-to-noise ratio rather than a contrast.
+    caveat: >
+      Not a contrast, and should not be described as one. It is also the only
+      centre that carries the dB column's absolute offset into z. The recipe
+      converts each segment to decibels before averaging them, which biases every
+      dB value low by a constant: 2.51 dB on the Welch method, where each segment
+      is one periodogram, and 0.31 dB on multitaper, which averages over tapers
+      first. Every other centre subtracts one dB value from another and the
+      constant cancels. Here nothing is subtracted, so at a scale of 2 dB the
+      offset alone is more than one z unit. Measured in
+      curriculum/10_stochastic/01_estimators_are_random_variables.
+
+scales:
+  pooled_within_condition:
+    label: "Pooled within-condition variability"
+    description: >
+      Pool the per-condition standard deviations into one number and use it for
+      every condition: the square root of the segment-weighted mean of the
+      variances, sqrt(sum((n_i - 1) * s_i^2) / sum(n_i - 1)).
+      Until 2026-09-09 this averaged the standard deviations instead, which is a
+      systematically smaller number whenever the conditions differ in
+      variability, so every z computed on this default before that date was
+      inflated. See docs/findings.md.
+    when_to_use: >
+      The default. One scale for all conditions, so a difference of the same size
+      reads the same wherever it occurs.
+    caveat: >
+      A single noisy condition inflates the pooled scale and shrinks every z,
+      including in the quiet conditions.
+
+  own_condition:
+    label: "Each condition's own variability"
+    description: >
+      Scale each condition by how much it varies across its own time segments.
+    when_to_use: >
+      When conditions genuinely differ in stability and you want each judged on
+      its own terms.
+    caveat: >
+      A noisy condition gets a smaller z purely for being noisy, which understates
+      real effects in exactly the conditions where they are hardest to see.
+
+  condition:
+    label: "The baseline condition's variability"
+    description: >
+      Scale everything by the spread of the named baseline condition.
+    when_to_use: >
+      Pairs naturally with a named baseline centre: how many baseline standard
+      deviations away is this.
+    caveat: >
+      If the baseline window is short or atypical, its spread is a poor yardstick
+      and every z inherits that.
+
+  across_conditions:
+    label: "Spread between condition means"
+    description: >
+      Scale by how much the condition means differ from each other, ignoring
+      within-condition variability.
+    when_to_use: >
+      When you care about which condition stands out relative to the others,
+      rather than relative to moment-to-moment noise.
+    caveat: >
+      With few conditions this is estimated from very few numbers and is unstable.
+      Meaningless with fewer than three.
+
+  none:
+    label: "No scaling"
+    description: >
+      Divide by one. z is then just the centred value, in dB.
+    when_to_use: >
+      When dB differences are already the quantity you want to read.
+    caveat: >
+      Do not call the result a z score; it is a difference in decibels.

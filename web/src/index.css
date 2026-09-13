@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/* Dense and scientific, closer to a lab instrument than a marketing page.
+   Every token is defined once here; see web/DESIGN.md for what each is for.
+   Pages use the role (text-muted), never the palette value (text-stone-500). */
+
+@theme {
+  /* Color roles. Teal for the accent because blue reads as a 1990s hyperlink,
+     and because the status colors need the cool end of the range left alone. */
+  --color-canvas: var(--color-stone-50);
+  --color-surface: #ffffff;
+  --color-surface-sunken: var(--color-stone-50);
+  --color-line: var(--color-stone-300);
+  --color-line-subtle: var(--color-stone-200);
+  --color-ink: var(--color-stone-900);
+  --color-ink-muted: var(--color-stone-500);
+
+  --color-accent: var(--color-teal-700);
+  --color-accent-hover: var(--color-teal-800);
+  --color-accent-soft: var(--color-teal-50);
+
+  --color-ok: var(--color-emerald-700);
+  --color-ok-soft: var(--color-emerald-50);
+  --color-ok-ink: var(--color-emerald-900);
+
+  --color-warn: var(--color-amber-700);
+  --color-warn-soft: var(--color-amber-50);
+  --color-warn-ink: var(--color-amber-900);
+
+  --color-danger: var(--color-rose-700);
+  --color-danger-soft: var(--color-rose-50);
+  --color-danger-ink: var(--color-rose-900);
+
+  /* Five sizes. A sixth means the layout is the problem. */
+  --text-display: 1.125rem;
+  --text-display--line-height: 1.5rem;
+  --text-heading: 0.875rem;
+  --text-heading--line-height: 1.25rem;
+  --text-body: 0.8125rem;
+  --text-body--line-height: 1.125rem;
+  --text-small: 0.75rem;
+  --text-small--line-height: 1rem;
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 0.875rem;
+}
+
+:root { color-scheme: light; }
+
+body {
+  @apply bg-canvas text-ink antialiased;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+
+/* Columns of digits line up. Applied wherever a number is measured rather than
+   counted, which in practice is every numeric table cell. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focus is visible everywhere. Removing an outline without replacing it is how
+   a keyboard user loses their place. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}

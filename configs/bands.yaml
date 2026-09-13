@@ -1,0 +1,22 @@
+# Frequency band definitions used by analysis recipes.
+# Edit here rather than hard-coding band edges in code.
+# Units: Hz. Ranges are [low, high), inclusive of low, exclusive of high.
+
+bands:
+  delta:      [1.0, 4.0]
+  theta:      [4.0, 8.0]
+  alpha:      [8.0, 13.0]
+  low_beta:   [13.0, 20.0]
+  high_beta:  [20.0, 30.0]
+  beta:       [13.0, 30.0]
+  low_gamma:  [30.0, 60.0]
+  high_gamma: [70.0, 150.0]
+
+# Line noise fundamental and the harmonics to notch (Hz).
+line_noise:
+  fundamental: 60.0
+  harmonics: [60.0, 120.0, 180.0, 240.0]
+
+# Bands reserved for stimulation artifact and ERNA work. Left empty until
+# the recording parameters are settled; see docs/decisions.md.
+stim: {}

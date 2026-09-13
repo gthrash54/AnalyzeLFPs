@@ -1,0 +1,46 @@
+# The build context is the repository root. What is not listed here is sent to
+# the daemon on every build, so this file is also what keeps a build from
+# uploading a recording.
+
+# Recordings. Never in an image. They are mounted at run time, read-only.
+data/
+*.eeg
+*.vhdr
+*.vmrk
+*.fif
+*.tev
+*.tsq
+
+# Results, provenance, and accounts are volumes, not image content. Baking them
+# in would ship one machine's runs to every other machine.
+derivatives/
+runs/
+var/
+
+# Environments and build output. The image builds its own.
+.venv/
+web/node_modules/
+web/dist/
+web/.vite/
+node_modules/
+*.egg-info/
+
+# Local settings, including anything anyone put in docker/.env.
+docker/.env
+docker/tls/
+
+.git/
+.github/
+.claude/
+.vscode/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+__pycache__/
+*.py[cod]
+
+# Documents that are not part of the running app.
+*.docx
+*.pdf

@@ -1,0 +1,142 @@
+# Layout detection.
+#
+# Recordings arrive with different channel orders, stream names, lead counts, and
+# montages. The app inspects a file and PROPOSES a layout; a person confirms it;
+# the confirmed answer is written to manifest/. Detection never writes the
+# manifest directly, for the same reason QC flags never write decisions: a
+# proposal with evidence that a human accepts is auditable, a silent guess is not.
+#
+# Every proposal carries: what was proposed, the evidence, a confidence, and
+# whether it is `detectable` at all. Anything marked not detectable is presented
+# as a choice with the plausible options ranked, never guessed.
+#
+# confidence bands: high (>=0.9), medium (0.6-0.9), low (<0.6).
+# Anything below `min_confidence_to_prefill` is shown unselected.
+
+policy:
+  min_confidence_to_prefill: 0.9
+  always_show_evidence: true
+  never_silently_relabel: true
+  # A confirmed manifest wins over any later detection. Re-running detection on a
+  # confirmed recording reports disagreements; it does not overwrite.
+  on_disagreement_with_manifest: flag
+
+detectors:
+
+  stream_role:
+    detectable: true
+    typical_confidence: high
+    description: >
+      Assign each stream a role from its name, channel count, and sampling rate.
+    rules:
+      # Name patterns are hints, not authority; different rigs name stores
+      # differently, so the numeric evidence has to agree.
+      - role: audio
+        name_matches: ["mic", "aud", "snd", "speech"]
+        n_channels: [1, 2]
+      - role: video
+        name_matches: ["cam", "vid"]
+        is_epoch_stream: true
+      - role: emg
+        name_matches: ["emg", "musc"]
+        n_channels: [1, 16]
+      - role: stim
+        name_matches: ["stim", "pulse", "trig", "erna"]
+      - role: neural
+        # Highest channel count at the highest rate, when nothing else claims it.
+        fallback: true
+
+  channel_block_structure:
+    detectable: true
+    typical_confidence: medium
+    description: >
+      Within a neural stream, find contiguous blocks of channels that look like
+      separate arrays: a run of N contacts with similar impedance and similar
+      spectra, bounded by a discontinuity. Proposes how many arrays there are and
+      where they start, not what they are.
+    candidate_block_sizes: [4, 6, 8, 12, 16, 32, 64]
+    min_discontinuity_ratio: 1.5
+
+  lead_geometry:
+    detectable: true
+    typical_confidence: high
+    requires: impedance
+    description: >
+      Distinguish ring from segment contacts by impedance. Segments have roughly
+      half a ring's surface area and read proportionally higher, so a directional
+      lead shows a low-high-high-low pattern down the shank, which also fixes the
+      ventral-to-dorsal ordering. Matches the geometry against configs/leads.yaml
+      and proposes the models whose geometry fits.
+    segment_to_ring_ratio_min: 1.5
+    fallback_when_no_impedance: select
+
+  sampling_rate:
+    detectable: true
+    typical_confidence: high
+    description: Read from the file header and checked against manifest/streams.csv.
+
+  line_noise_frequency:
+    detectable: true
+    typical_confidence: high
+    description: >
+      Choose between 50 and 60 Hz mains by comparing spectral peak prominence at
+      each and its harmonics. Prevents a notch filter aimed at the wrong mains.
+    candidates_hz: [50.0, 60.0]
+
+  reference_scheme:
+    detectable: true
+    typical_confidence: medium
+    description: >
+      Detect a shared reference by looking for high inter-channel correlation
+      across the whole array at rest. Feeds guardrail G1 rather than changing
+      anything on its own.
+    shared_reference_corr_min: 0.9
+
+  # ---- Not detectable from the signal. Presented as a selection. -------------
+
+  lead_manufacturer:
+    detectable: false
+    reason: >
+      Impedance separates rings from segments but cannot identify a vendor.
+      Several manufacturers ship the same 1-3-3-1 geometry with different contact
+      numbering, so guessing would silently mislabel every figure.
+    resolution: select_from_matching_geometry
+    source_of_truth: implant record or programmer screenshot
+
+  anatomical_target:
+    detectable: false
+    reason: >
+      Which nucleus a lead sits in is an imaging and surgical fact, not a
+      property of the recorded signal. Spectral signatures overlap too much to
+      carry a labeling decision.
+    resolution: select_from_vocabulary
+    source_of_truth: operative record
+
+  hemisphere:
+    detectable: false
+    reason: Not recoverable from the recording.
+    resolution: select
+    source_of_truth: operative record
+
+  lead_rotation:
+    detectable: false
+    reason: >
+      Segment orientation requires imaging. Without it, segments cannot be mapped
+      to anatomical directions.
+    resolution: select_or_leave_empty
+    consequence_when_empty: blocks any anatomical direction claim
+
+  ecog_strip_location:
+    detectable: false
+    reason: Requires imaging or a datasheet entry.
+    resolution: select_or_leave_empty
+    consequence_when_empty: cortical channels carry no site label
+
+  condition_windows:
+    detectable: partial
+    typical_confidence: low
+    description: >
+      When there are no task markers, windows can be proposed from the microphone
+      envelope, EMG activity, or video frame times. Always proposed, never
+      assumed, and written with derived_from set to whichever signal produced it.
+    resolution: propose_then_confirm

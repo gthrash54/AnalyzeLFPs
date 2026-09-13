@@ -1,0 +1,92 @@
+# The lab deployment: one API, one worker, one image.
+#
+#   cp docker/.env.example docker/.env     # then read it
+#   docker compose -f docker/compose.yml up -d --build
+#
+# The API publishes on 127.0.0.1 by default. Reaching it from another machine is
+# a deliberate change to BIND, and campus network rules come first: ask your IT department
+# before exposing anything, and prefer VPN-only.
+
+name: dbsspeech
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        # Stamped into the image so a containerized run record names the commit
+        # it came from. Set them in the shell before building; unset means the
+        # records will honestly say the commit is unknown.
+        GIT_COMMIT: "${GIT_COMMIT:-}"
+        GIT_DIRTY: "${GIT_DIRTY:-false}"
+    image: dbsspeech:local
+    command: ["python", "-m", "dbsspeech", "serve", "--host", "0.0.0.0", "--port", "8000"]
+    # 0.0.0.0 is inside the container only. What the host exposes is the mapping
+    # below, and `serve` refuses to bind past localhost unless auth is on, so a
+    # missing DBSSPEECH_REQUIRE_AUTH stops this container rather than publishing
+    # an unauthenticated app.
+    env_file: [.env]
+    ports:
+      - "${BIND:-127.0.0.1}:${PORT:-8000}:8000"
+    volumes: &app_volumes
+      # Recordings, read-only. The app never writes to raw data, and the
+      # container is not the place to find out whether that is still true.
+      - "${DATA_DIR:-../data}:/app/data:ro"
+      # Results and provenance. Losing these is losing the work.
+      - "../derivatives:/app/derivatives"
+      - "../runs:/app/runs"
+      # Accounts, sessions, and config history.
+      - "../var:/app/var"
+      # Config lives here because the config admin screen writes to it. Baked
+      # into the image it would look editable and silently reset on the next
+      # rebuild, which is the worst of both.
+      - "../configs:/app/configs"
+      # Manifest rows are edited by hand, so they are mounted rather than baked.
+      - "../manifest:/app/manifest"
+    healthcheck:
+      # No curl in a slim image, and adding one to run a health check is a
+      # package to keep patched for no reason.
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5).status == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        # Stamped into the image so a containerized run record names the commit
+        # it came from. Set them in the shell before building; unset means the
+        # records will honestly say the commit is unknown.
+        GIT_COMMIT: "${GIT_COMMIT:-}"
+        GIT_DIRTY: "${GIT_DIRTY:-false}"
+    image: dbsspeech:local
+    command: ["python", "-m", "dbsspeech", "worker"]
+    env_file: [.env]
+    volumes: *app_volumes
+    # A run holds a whole recording in memory. Two workers on one lab machine is
+    # how an analysis gets killed halfway through, so scale up deliberately:
+    #   docker compose -f docker/compose.yml up -d --scale worker=2
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  # Only if the lab needs TLS or a hostname in front. The API already serves the
+  # built front end, so this is not required to have a working deployment.
+  #   docker compose -f docker/compose.yml --profile nginx up -d
+  nginx:
+    profiles: ["nginx"]
+    image: nginx:1.27-alpine
+    ports:
+      - "${BIND:-127.0.0.1}:${HTTPS_PORT:-8443}:443"
+    volumes:
+      - "./nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+      - "${TLS_DIR:-./tls}:/etc/nginx/tls:ro"
+    depends_on:
+      - api
+    restart: unless-stopped

@@ -1,0 +1,102 @@
+# ERNA (evoked resonant neural activity) analysis settings.
+#
+# READ THIS BEFORE TRUSTING A NUMBER FROM THIS RECIPE.
+#
+# The values below are starting points, not a lab convention and not a
+# published standard. ERNA analysis is defined by a stimulation protocol, and
+# every lab's protocol differs: pulse rate, burst length, amplifier blanking,
+# what counts as the response window. Nobody can pick these for you.
+#
+# The recipe is built so a neuroscientist can plug in their own protocol without
+# touching code. Everything here is a run parameter too, so one subject can be
+# analyzed differently from another without editing this file.
+#
+# `defaults_reviewed` below is the one field that matters procedurally. It is
+# false, which makes every run say in its record and on its figure that it used
+# unreviewed defaults. Set it to true, with your protocol's numbers, once
+# someone who knows the protocol has actually looked. Do not set it to true to
+# make the warning go away.
+
+defaults_reviewed: false
+reviewed_by: ""
+reviewed_on: ""
+protocol_note: >-
+  Describe the stimulation protocol these settings are for: pulse rate, burst
+  length and spacing, amplifier blanking, and where the numbers came from. This
+  text is copied into every run record and figure caption.
+
+stim:
+  # How stimulation events are located in the recording.
+  #   amplitude_threshold  find the artifact in the signal itself
+  #   windows              use manifest/windows.csv rows of one condition
+  #   epochs               use an epoch store from the recording
+  source: amplitude_threshold
+
+  # amplitude_threshold only. The artifact is enormous relative to neural
+  # signal, so this is deliberately not subtle. Robust units: a sample counts
+  # as an artifact when |x - median| exceeds this many median absolute
+  # deviations.
+  threshold_mad: 12.0
+
+  # Minimum spacing between detected events, in milliseconds. This is what stops
+  # one artifact being counted as several. Set it just under the shortest
+  # interval between the events you want counted separately: for burst-evoked
+  # ERNA that is the burst spacing, not the pulse interval.
+  refractory_ms: 100.0
+
+  # windows source only: which condition's windows are stimulation events.
+  condition: ""
+
+  # epochs source only: which epoch store, by name.
+  epoch_store: ""
+
+window:
+  # Milliseconds after each stimulation event to discard. This is the whole
+  # game. Too short and the recovering amplifier is measured as a resonance;
+  # too long and the first and largest cycles are thrown away. It is recorded
+  # in every run record and printed on every figure.
+  blanking_ms: 4.0
+
+  # Milliseconds of signal analyzed after the blanking ends.
+  analysis_ms: 100.0
+
+band:
+  # Bandpass applied to the analysis window before peaks are found, in hertz.
+  # Reported ERNA frequencies cluster in the low hundreds; this range is wide on
+  # purpose so it does not decide the answer. Narrow it to your protocol.
+  low_hz: 100.0
+  high_hz: 500.0
+
+peaks:
+  # Fewest successive peaks an epoch must show to be measured at all. Below
+  # this, a frequency from inter-peak intervals is a number without a
+  # measurement behind it.
+  min_peaks: 4
+
+  # Peak prominence, as a fraction of the largest absolute value in the window.
+  # Raise it when noise is being counted as resonance.
+  min_prominence_fraction: 0.1
+
+  # How far one interval between successive extrema may differ from the ones
+  # before it before the resonance is treated as over. Ringing is evenly spaced
+  # and noise is not, so this is what keeps what follows the response out of the
+  # frequency and out of the decay fit. Raise it for a resonance that drifts in
+  # frequency; lower it for a noisy recording.
+  max_interval_jitter: 0.35
+
+decay:
+  # Fit an exponential to the envelope of successive peaks. Off gives amplitude
+  # and frequency only, which is a reasonable thing to want.
+  fit: true
+
+  # Smallest acceptable R-squared for the fit. Below this the decay constant is
+  # reported as missing rather than as a bad number, because a decay constant
+  # with no fit behind it is the kind of number that ends up in a figure.
+  min_r_squared: 0.5
+
+quality:
+  # Largest tolerated disagreement between the frequency from inter-peak
+  # intervals and the frequency from the FFT of the same window, as a fraction.
+  # They measure the same thing two ways; when they disagree, something other
+  # than a resonance is being measured.
+  max_frequency_disagreement: 0.25

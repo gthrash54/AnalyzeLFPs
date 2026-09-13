@@ -1,0 +1,63 @@
+# Binding task markers in a recording to condition windows.
+#
+# Kept separate from configs/vocabularies.yaml on purpose. The vocabulary is the
+# shared list of condition names, the same for every lab. Marker codes are the
+# opposite: `Stimulus/S 13` means whatever one paradigm decided it means, and
+# nothing outside that lab can read it. Mixing them would put one lab's private
+# codes into the file every other lab inherits.
+#
+# Nothing here writes a manifest. Bindings produce proposed `windows.csv` rows
+# with `status: draft` and `derived_from: task_marker`, which a person reviews.
+
+# How far a window extends from a marker onset. Named here so a proposal can say
+# which rule produced it, rather than presenting a number with no provenance.
+#
+#   until_next     onset of this marker until the onset of the next marker of
+#                  any label, and to the end of the recording for the last one.
+#                  Right for block designs, and invents no constant.
+#   fixed_s: N     onset plus N seconds. Right for trial designs where the
+#                  epoch of interest has a defined length.
+#   annotation     the marker's own onset and offset, as recorded in the file.
+#                  Proposes nothing where the recorded duration is zero.
+default_extent: until_next
+
+# Windows shorter than this are not proposed. A marker pair a few milliseconds
+# apart is a trigger artifact or a duplicate, not a condition.
+min_duration_s: 0.5
+
+# A binding matching more markers than this is describing trials, not
+# conditions, so it proposes nothing and says why. Measured against a real
+# recording: one BrainVision block carried 9,849 events on a per-trial trigger
+# beside 5 block markers. Treating the trigger as a condition produced 9,849
+# overlapping two-second rows, and, worse, its density collapsed every real
+# block window to the millisecond gap before the next tick. A label rejected
+# here is also excluded from ending other windows, for that second reason.
+# Trial structure belongs to an epoching recipe, not to windows.csv.
+max_events_per_binding: 200
+
+# Bindings, checked in order of pattern length, longest first, so a specific
+# code is never shadowed by a more general one. `pattern` is a plain substring
+# match against the marker label the reader reports; run
+# `python -m dbsspeech inspect <path>` to see the labels a file actually has.
+#
+# `condition` must be a name in configs/vocabularies.yaml.
+#
+# This list ships empty. A lab fills it in for its own paradigm, and until it
+# does, window proposal reports the labels it found and proposes nothing, which
+# is the correct behavior rather than a guess.
+bindings: []
+
+# Worked example, for reference. Delete or adapt.
+#
+# bindings:
+#   - pattern: "Stimulus/S 13"
+#     condition: cue
+#     extent: until_next
+#     note: "visual cue onset"
+#   - pattern: "Stimulus/S 15"
+#     condition: task
+#     extent: {fixed_s: 2.0}
+#     note: "response epoch, fixed 2 s by protocol"
+#   - pattern: "Response"
+#     condition: move
+#     extent: annotation

@@ -1,0 +1,156 @@
+# Derivative store policy.
+#
+# What the one-pass build does to each stream, and where the result lives.
+# Numbers live here; the reasoning lives in docs/decisions.md. Every output
+# file records the sha256 of the resolved config it was built with, so a change
+# here reopens exactly the blocks it affects and no others.
+
+schema_version: 1
+
+store:
+  # Outside both the repository and any cloud-synced folder. Dropbox syncs too, which is
+  # intended for the store and must never happen for the staging archive.
+  root: "~/Dropbox/DBS Derivatives"
+  # Microphone products go here instead of `root`. Operating-room audio is a
+  # HIPAA identifier (voice) and can carry spoken names; until the governance
+  # question is answered it stays on this machine and is never synced. Set to
+  # null to store audio beside everything else.
+  audio_root: "~/DBS Derivatives/audio"
+  format: hdf5
+  dtype: float32
+  compression: {name: gzip, level: 1, shuffle: true}
+  # Chunks hold the full channel width and about this many bytes of samples,
+  # so a time-window read across every channel costs one chunk.
+  chunk_target_bytes: 4194304
+  # Streaming window for reading the source. Not a storage chunk. Bounds peak
+  # memory per worker to a few hundred megabytes.
+  window_s: 30.0
+
+resample:
+  # Fractions are of the OUTPUT Nyquist. 0.8 is the convention guardrail G6
+  # already assumes; the build measures the response and records it, so the
+  # convention becomes a checked number.
+  passband_fraction_of_out_nyquist: 0.8
+  stopband_fraction_of_out_nyquist: 1.0
+  stopband_attenuation_db: 90.0
+  # Every rate in this archive is an exact rational with a denominator of at
+  # most 3125. A rate needing more is not ours and is refused, not approximated.
+  max_denominator: 3125
+  require_measured_alias_floor_db: -80.0
+
+# Stream and channel names to roles. `on_unmapped: quarantine` means a name
+# not listed here stops that block with a reason, rather than being guessed at.
+roles:
+  # TDT store names, exact.
+  streams:
+    ecos: lfp
+    ecog: lfp
+    dbs1: lfp
+    LFP1: lfp
+    RSn1: lfp
+    emgg: emg
+    emg_: emg
+    mic_: mic
+    micp: mic
+    macp: micro
+    marw: micro
+    raww: micro
+    spkk: micro
+    spik: micro
+    spie: micro
+    MonA: monitor
+  # BrainVision surfaces one stream; roles come from channel names. Regular
+  # expressions, matched case-insensitively against the whole name.
+  channel_patterns:
+    lfp:   ['^ecog', '^ecg_', '^dbs\d', '^dbs\d_\d', '^lfp', '^stn', '^gpi']
+    emg:   ['fdi', 'fcu', '^oo$', '^oo_', 'gastroc', '^ta_', '^ta$', 'orb', 'emg']
+    # '^mic' alone also matched 'micro_raw' (one ug header), making it ambiguous.
+    mic:   ['^mic(?!ro)', '^audio', '^voice']
+    micro: ['macro_raw', 'micro_raw', 'micro_spk', 'micro_spike', '^spikes$', '^ao\d*_micro', '^ao_macro', '^no_']
+    # ao_1..ao_3 are Alpha Omega auxiliary analog inputs; the ug sidecars label
+    # them 'notConnected'. Ignored for now. They are candidate blank-pin artifact
+    # controls (Bush 2022) and deserve a role of their own; see docs/backlog.md.
+    ignore: ['notconnected', 'not_connected', '^ao_\d+$']
+  on_unmapped: quarantine
+
+build:
+  max_attempts: 3
+  # A claimed or building row older than this is assumed orphaned and reopened.
+  stale_timeout_s: 3600
+  # Blocks in which stimulation is delivered keep EVERY stream at native rate.
+  # The 8 kHz anti-alias filter has a ~7 ms impulse response (about 3.6 ms of
+  # ringing either side of an edge); at 130 Hz the inter-pulse interval is
+  # 7.7 ms, so a resampled stim-on block has no sample free of pulse-edge
+  # energy and the ERNA window (3 to 20 ms post-pulse) is inside the ringing.
+  # Artifact handling happens at native rate, before any decimation. A block
+  # is stim-on if its name matches one of these OR it carries a non-empty
+  # stimulation epoch store; uncertainty resolves toward native rate.
+  native_rate_block_patterns:
+    - 'increment'
+    - 'clinical_dbs'
+    - 'crosstalk'
+    - 'polarity'
+    - 'stim'
+    - 'erpstim'
+    - 'erpassay'
+    - 'sdcurve'
+    - 'ther_window'
+    - 'buzz'
+    - 'sedation'
+    - 'induction'
+    - '_dbs\d'
+    - 'afterdbs'
+  native_rate_when_stim_epochs_present: true
+  stim_epoch_stores: ['PeA/', 'PeB/', 'PeC/', 'CnA/', 'CnB/', 'AmpA', 'AmpB', 'AmpC',
+                      'CntA', 'CntB', 'CntC', 'DelA', 'DelB', 'DelC', 'ChnA', 'ChnB']
+
+# One product per role. `target_hz: native` writes the stream unresampled.
+products:
+  lfp:     {name: lfp,   target_hz: 8000}
+  emg:     {name: emg,   target_hz: 2000}
+  mic:     {name: mic,   target_hz: 16000}
+  micro:   {name: micro, target_hz: native}
+  monitor: {name: mon,   target_hz: 8000}
+
+epochs:
+  # Every epoch store is kept as onset, offset and value tables, relative to
+  # the block start. No waveform.
+  keep_all: true
+  # `Note` indexes into a free-text file the store does not carry.
+  drop_stores: [Note]
+  # A latent reader bug can put the clock origin on a stray tiny timestamp,
+  # which makes every onset read as a Unix epoch. Any onset outside
+  # [0, duration * (1 + slack)] quarantines the block.
+  max_onset_slack_fraction: 0.01
+
+summary:
+  # Computed at the NATIVE rate before resampling, so what the store no longer
+  # holds above the cutoff is still described.
+  full_rate_psd: {enabled: true, nperseg_s: 1.0, overlap: 0.5, aggregate: median}
+  per_channel_stats: [rms, min, max, n_at_rail, pc1_variance_fraction]
+
+# When a block exists in more than one format, which to read for waveforms.
+# The .mat export is chunked for windowed all-channel reads and is smaller;
+# the tank index is read for epochs regardless because it is already staged.
+source_preference: [tdt_mat, tdt_tank, brainvision]
+epochs_always_from_tsq: true
+
+referencing:
+  # No montage in the store. Bipolar is a linear combination across channels
+  # and the filter is linear along time, so they commute exactly; deferring
+  # keeps the store free of a per-contact lead assignment not yet curated.
+  apply: none
+  record_common_mode: true
+
+privacy:
+  # The build passes its own policy rather than trusting configs/privacy.yaml,
+  # so the store cannot inherit a wrong setting.
+  emit_source_filenames: false
+  emit_acquisition_datetime: false
+  # Anything matching these never reaches a log, a ledger row, or an output.
+  redact_patterns:
+    - 'u[gh]\d{4}-\d{6}-\d{6}'
+    - '\d{1,2}/\d{1,2}/\d{4}'
+    - '\d{4}-\d{2}-\d{2}'
+    # BrainVision stimulus files carry `date_YYYYMMDD` in their names.
+    - '(?<!\d)date_\d{8}'

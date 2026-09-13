@@ -1,0 +1,148 @@
+# Guardrail configuration.
+#
+# Each check can be tuned, downgraded, or switched off by a lab without touching
+# code. Prose lives in docs/guardrails.md; the numbers live here.
+#
+# severity: block | warn | note | off
+#   block  stops the run unless explicitly overridden, and the override plus its
+#          reason are written into the run record
+#   warn   annotates the result and the figure
+#   note   recorded in the run record only
+#   off    disabled
+#
+# Every threshold below is a starting value, not a law. Where a value came from
+# an observation rather than a standard, `source` names the dataset note.
+
+defaults:
+  allow_override: true
+  # `require_override_reason` used to sit here and was read by nothing. An
+  # override without a reason is refused by Override.__post_init__ always, not
+  # configurably, because an unexplained override is indistinguishable from not
+  # having the check. A key here implied it could be switched off.
+
+guardrails:
+
+  G1_shared_reference_common_mode:
+    severity: block
+    allow_override: true
+    # This check tests the requested montage, not the data. It fires when the
+    # primary reference is monopolar. The data test it would like to be, an
+    # effect on nearly every channel at once with little spread between them,
+    # is described in docs/guardrails.md and is not implemented; the thresholds
+    # it would need are not here, because a threshold nothing reads is worse
+    # than no threshold.
+    source: datasets/README.md
+
+  G2_effect_tracks_electrode_not_state:
+    severity: block
+    allow_override: true
+    # Fires when a recipe reports that it did not subtract a per-contact
+    # baseline. The stronger data test, correlating each contact's map against
+    # the baseline condition, is in docs/guardrails.md and is not implemented.
+
+  G3_ratio_before_average:
+    severity: block
+    allow_override: false   # Jensen's inequality is not a judgment call
+
+  G4_threshold_across_conditions:
+    severity: warn
+    allow_override: true
+    require_within_condition_threshold: true
+
+  G5_window_longer_than_phenomenon:
+    severity: warn
+    allow_override: true
+    # Warn when the analysis window exceeds this multiple of the duration being
+    # claimed. A window many times longer cannot resolve the event.
+    max_window_to_event_ratio: 5.0
+
+  G6_decimation_removes_claimed_band:
+    severity: block
+    allow_override: false
+    # Anti-alias cutoff as a fraction of Nyquist. scipy.signal.decimate and
+    # MATLAB's decimate both use a Chebyshev filter at 0.8 * Nyquist.
+    #
+    # Read by preprocess.cutoff_fraction_from and used by every recipe to report
+    # its usable bandwidth. Lowering it here narrows what G6 will allow a run to
+    # claim. Until 2026-09-09 nothing read this and four recipes hard-coded the
+    # same number as 0.4 of the sampling rate.
+    antialias_cutoff_fraction_of_nyquist: 0.8
+
+  G7_emg_contamination_in_high_band:
+    severity: warn
+    escalate_only_for_conditions: [overt]
+    # Speech EMG occupies roughly this range, which overlaps the bands that open
+    # up as sampling rate rises.
+    emg_band_hz: [100.0, 1000.0]
+    # What the finding recommends when it fires, a bipolar montage and EMG
+    # regression, is in the remedy text rather than in keys here, because
+    # nothing enforced them and a key that does nothing reads as if it does.
+    # See docs/guardrails.md.
+
+  G8_db_without_z:
+    severity: note
+    require_z_alongside_db: true
+
+  G9_nonstationarity_exceeds_effect:
+    severity: warn
+    allow_override: true
+    # Warn when the largest spontaneous excursion in the recording is at least
+    # this multiple of the reported condition effect.
+    excursion_to_effect_ratio: 1.0
+
+  G10_window_provenance:
+    severity: warn
+    flag_derived_from: [assumed]
+    flag_status: [draft, under_revision]
+
+  G11_control_condition_missing:
+    severity: warn
+    allow_override: true
+    # One rule per confound. `applies_to_conditions` is what the run analyzes,
+    # `satisfying_conditions` is what would rule the confound out, and `because`
+    # is the sentence the finding shows the reviewer. All names come from
+    # configs/vocabularies.yaml.
+    #
+    # A paradigm this lab does not run costs nothing to leave here: a rule fires
+    # only when the run actually analyzes one of its `applies_to_conditions`.
+    #
+    # The older flat form, `satisfying_conditions` and `applies_to_conditions`
+    # at this level, is still read as a single rule.
+    rules:
+      - applies_to_conditions: [overt, inner]
+        satisfying_conditions: [metro, move]
+        because: >
+          speech is a motor act, so a low-frequency change during speech has a
+          motor explanation until a movement-only condition rules it out
+
+      - applies_to_conditions: [move, imagery]
+        satisfying_conditions: [rest]
+        because: >
+          a movement effect with no resting baseline cannot be separated from
+          the ongoing state the movement was made from
+
+      - applies_to_conditions: [task]
+        satisfying_conditions: [rest, cue]
+        because: >
+          a cognitive effect needs either a resting baseline or the sensory cue
+          alone, or it cannot be separated from the stimulus that evoked it
+
+      - applies_to_conditions: [dbs_on]
+        satisfying_conditions: [dbs_off]
+        because: >
+          a stimulation effect without the stimulation-off condition is a
+          description of one state, not a contrast
+
+  G12_baseline_on_smoothed_data:
+    severity: block
+    allow_override: false
+
+  G13_path_and_filename_policy:
+    # Effective severity follows configs/privacy.yaml:filenames_deidentified.
+    # block when filenames are not declared de-identified, note when they are.
+    severity: block
+    allow_override: false
+    # Where a raw path must never appear, and how a recording should be referred
+    # to instead, are in docs/guardrails.md. They were keys here and nothing read
+    # them. The check inspects `paths_in_outputs` on the context; see the note in
+    # docs/guardrails.md about what currently populates it.
