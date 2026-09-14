@@ -80,31 +80,8 @@ Six notebooks mention the package in comments of the form
 point at the code the lesson is teaching the mathematics behind. They are
 cross-references, not imports, and nothing breaks without the package present.
 
-## What this is for
 
-Every lesson underwrites a guardrail, a recipe, or a design decision in the
-package. The point is not to teach signal processing in general. It is that the
-rules in `configs/guardrails.yaml` are only worth enforcing if somebody has
-checked the arithmetic behind them, and these notebooks are that check.
 
-The recurring shape, stated in full in GRL 5, is that **every measure in this
-field has a non-physiological process that produces its signature at full
-strength**, the confound is common, and the diagnostic is cheap.
-
-## Order
-
-Probability comes first. It was written last, and it exists because SIG 4, INF 1
-and SPK 4 each asserted a distributional result and moved on; STO 1 to STO 4
-derive them. Linear Algebra and Signal Processing are independent of each other,
-and both are prerequisites for everything later. The Preprocessing Contract needs both.
-After that the courses may be taken in any order except Scientific Integrity and
-Electives, which are last: their lessons draw on every earlier course. Decoding
-comes after Inference, because DEC 2 and DEC 4 both need INF 1's argument about
-what an estimate selected for looking good is worth.
-GRL 3 needs REC 1 and SPK 1, GRL 4 needs POP 1 and CON 4, and GRL 5 indexes all
-of them. Inference follows Guardrails rather than preceding it, because INF 1
-and INF 3 both build on GRL 4's result that a drifting baseline makes the choice
-of design, not the choice of test, the thing that decides the answer.
 
 ```
 Probability ─→ Linear Algebra ─┐
@@ -243,42 +220,8 @@ name specific lessons rather than topics.
 | DEC 4 | Nonlinear against linear | The crossover is between 160 and 320 trials, and at 40 trials it would take 218 sessions to establish which model is better |
 | DEC 5 | Weights are not an encoding map | With a nuisance present, weight magnitude ranks contacts at 0.31 against the truth, and one matrix multiply restores 0.90 |
 
-## What this curriculum does not teach
 
-Two gaps in `docs/backlog.md` are deliberately not filled, and saying so is more
-useful than leaving them looking pending.
-
-**Neuroanatomy and pathophysiology.** Basal ganglia circuitry, and the disease
-processes that motivate the surgery. **Neuroethics.** Agency, identity and
-consent under chronic stimulation, which is a live question for a speech
-application specifically.
-
-Both matter and neither can be measured against a simulated ground truth. Writing
-them here would produce the only lessons in the program whose claims could not be
-checked by running them, and the rule that every number in a lesson is one its
-code printed is what makes the rest of it worth trusting. They belong in reading
-and in conversation with clinicians, not in a notebook that pretends to derive
-them.
-
-## Checking a lesson
-
-Every number a lesson states in prose should be one its code printed. The
-generators cannot enforce that, because prose is prose, so there is a tool:
-
-```
-MPLBACKEND=Agg uv run python curriculum/tools/audit_prose_numbers.py <stem> [...]
-```
-
-It executes the lesson and lists every number in the markdown that the code never
-printed. Section numbers, band edges, config values and exercise hypotheticals
-belong in that list; a measured-sounding claim does not. Seven real errors were
-found this way, every one of them in a Section 5 summary restating a number the
-code had printed correctly. It cannot see worded fractions, so read the summaries
-against the output by eye too: "a sixth" against a printed 21 percent, and
-"halved" against a fourfold reduction, both got through.
-
-`MPLBACKEND=Agg` is not optional. The default backend on this machine is
-interactive and `plt.show()` hangs forever rather than failing.
+#
 
 ## Contributing a lesson
 
