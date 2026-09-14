@@ -8,7 +8,7 @@ It exists for graduate students or post docs that are beginners in signal analys
 
 
 It also carries a **curriculum**: 46 lessons on the mathematics behind the
-guardrails, at graduate level, in `curriculum/`, surfaced by the Learn section of
+analysis, at graduate level, in `curriculum/`, surfaced by the Learn section of
 the app, and executed on every commit. I have created a built in python curriculum in a Jupyter notebook. Hopefully YT walkthroughs will follow. 
 
 **I am an MD grad pursuing my PhD in Neuroengineering so content mistakes are possible. I tried double checkign with LLMs but please reach out if you find any mistakes at garrettthrash54@gmail.com**
