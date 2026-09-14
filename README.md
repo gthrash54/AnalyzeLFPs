@@ -1,17 +1,21 @@
-# dbsspeech
+# AnalyzeLFPs
 
 Analysis for intraoperative deep brain stimulation and ECoG recordings: the
 subcortical recordings made during electrode implantation, with speech, movement
 and stimulation conditions.
 
-It exists so that an analysis is reproducible by someone who was not there. Every
-result carries the claim it was meant to support, the code that produced it, the
-parameters, what quality control removed, and every methodological check that
-fired. A figure without that is a picture.
+It exists for graduate students or post docs that are beginners in signal analysis. 
+
 
 It also carries a **curriculum**: 46 lessons on the mathematics behind the
 guardrails, at graduate level, in `curriculum/`, surfaced by the Learn section of
-the app, and executed on every commit. See
+the app, and executed on every commit. I have created a built in python curriculum in a Jupyter notebook. Hopefully YT walkthroughs will follow. 
+
+**I am an MD grad pursuing my PhD in Neuroengineering so content mistakes are possible. I tried double checkign with LLMs but please reach out if you find any mistakes at garrettthrash54@gmail.com**
+
+This curriculum provides signal analysis and Neuroengineering fundamentals for students beginning their neuroscience journey.
+
+See
 [`curriculum/README.md`](curriculum/README.md) for the index and reading order.
 
 The lessons stand alone. They do not import this package, and you can take the
@@ -34,7 +38,7 @@ uv run python -m dbsspeech seed
 `seed` builds a demo project under `demo/`: a synthetic subject with a planted
 20 Hz oscillation and a planted 250 Hz resonance after each stimulation
 artifact, taken through the real QC review and run through every recipe. It
-prints the command to open the app against it.
+prints the command to open the app against it. Allows you to get familiar with the pipeline before continuing
 
 The manifests in `manifest/` ship **empty**, with headers only. There is no
 bundled subject, because a real one cannot be published and a fake one in the
