@@ -5,7 +5,7 @@ import type { DecisionRow, QcState } from "../api/types";
 import type { ActionOption, FlagMeaning } from "../components/FlagRow";
 import { FlagRow } from "../components/FlagRow";
 import { Badge, Button, EmptyState, Panel } from "../components/ui";
-import { inputClass, statusTone } from "../components/ui/tones";
+import { inlineInputClass, statusTone } from "../components/ui/tones";
 
 /** Reviewing a subject: read the report, decide each flag, sign. */
 export function Qc() {
@@ -62,7 +62,15 @@ export function Qc() {
     [active],
   );
 
-  if (error && !state) return <Panel title="QC"><p className="text-body text-danger">{error}</p></Panel>;
+  if (error && !state) {
+    return (
+      <Panel title="QC">
+        <p className="rounded-control bg-danger-soft px-2 py-1.5 text-body text-danger-ink">
+          {error}
+        </p>
+      </Panel>
+    );
+  }
   if (!state) return <Panel title="QC"><EmptyState>Loading…</EmptyState></Panel>;
 
   const canSign = state.n_undecided === 0 && reviewer.trim().length > 0;
@@ -88,7 +96,7 @@ export function Qc() {
             {state.n_flags} flags, <b>{state.n_undecided}</b> undecided
           </span>
           <input
-            className={inputClass}
+            className={`${inlineInputClass} min-w-56 flex-1`}
             placeholder="your name (required to decide)"
             value={reviewer}
             onChange={(e) => setReviewer(e.target.value)}
@@ -112,12 +120,17 @@ export function Qc() {
             </span>
           )}
         </div>
-        {error && <p className="mt-2 text-body text-danger">{error}</p>}
+        {error && (
+          <p className="mt-3 rounded-control bg-danger-soft px-2 py-1.5 text-body text-danger-ink">
+            {error}
+          </p>
+        )}
         {state.history.length > 0 && (
-          <ul className="mt-3 space-y-0.5 text-small text-ink-muted">
+          <ul className="mt-3 space-y-1 border-t border-line-subtle pt-2 text-small text-ink-muted">
             {state.history.slice(-4).map((h, i) => (
               <li key={i}>
-                {h.at} · <b>{h.event}</b> by {h.reviewer} {h.reason ?? ""}
+                <span className="font-mono text-micro tabular">{h.at}</span> ·{" "}
+                <b className="font-medium text-ink">{h.event}</b> by {h.reviewer} {h.reason ?? ""}
               </li>
             ))}
           </ul>
@@ -129,7 +142,7 @@ export function Qc() {
           {state.report_available ? (
             <iframe
               title="QC report"
-              className="h-[70vh] w-full rounded border border-line-subtle"
+              className="-mx-3 -my-3 h-[70vh] w-[calc(100%+1.5rem)] rounded-b-card bg-surface"
               src={api.qcReportUrl(studyId)}
             />
           ) : (
@@ -140,7 +153,7 @@ export function Qc() {
         <Panel title="Flags" hint="Rejecting a flag requires a reason">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <select
-              className={inputClass}
+              className={inlineInputClass}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >

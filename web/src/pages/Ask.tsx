@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import type { Proposal, Subject } from "../api/types";
 import { GuardrailList } from "../components/GuardrailList";
 import { Badge, Button, EmptyState, Panel } from "../components/ui";
+import { inlineInputClass } from "../components/ui/tones";
 
 /** A subject and session identify one recording, and both are needed to ask. */
 const keyOf = (s: Subject) => `${s.study_id}/${s.session}`;
@@ -58,13 +59,13 @@ export function Ask() {
   return (
     <div className="space-y-3">
       <Panel title="Ask" hint="Runs locally. Nothing about a recording leaves this machine.">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <label className="text-micro font-medium text-ink-muted" htmlFor="ask-subject">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <label className="text-small font-medium text-ink" htmlFor="ask-subject">
             Subject
           </label>
           <select
             id="ask-subject"
-            className="rounded border border-line px-2 py-1.5 text-body disabled:opacity-50"
+            className={inlineInputClass}
             value={selected}
             onChange={(e) => {
               setSelected(e.target.value);
@@ -89,9 +90,9 @@ export function Ask() {
             </Badge>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
-            className="flex-1 rounded border border-line px-2 py-1.5 text-body"
+            className={`${inlineInputClass} min-w-48 flex-1`}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && ask()}
@@ -112,11 +113,15 @@ export function Ask() {
           </p>
         )}
         {current && current.conditions.length > 0 && (
-          <p className="mt-2 text-micro text-ink-muted">
+          <p className="mt-2 text-small text-ink-muted">
             Conditions available: {current.conditions.map((c) => c.condition).join(", ")}
           </p>
         )}
-        {error && <p className="mt-2 text-body text-danger">{error}</p>}
+        {error && (
+          <p className="mt-2 rounded-control bg-danger-soft px-2 py-1 text-body text-danger-ink">
+            {error}
+          </p>
+        )}
       </Panel>
 
       {!proposal && <Panel title="Proposal"><EmptyState>Ask something to see what it would run.</EmptyState></Panel>}
@@ -129,16 +134,19 @@ export function Ask() {
                 ? <Badge tone="danger">blocked as proposed</Badge>
                 : <Badge tone="ok">would run</Badge>}
             </div>
-            <ul className="space-y-2">
+            <ul className="divide-y divide-line-subtle">
               {proposal.reasoning.map((r) => (
-                <li key={r.name} className="text-body">
-                  <code className="text-ink">{r.name} = {JSON.stringify(r.value)}</code>
-                  <p className="text-ink-muted">{r.reason}</p>
+                <li key={r.name} className="py-2 text-body first:pt-0 last:pb-0">
+                  <code className="font-mono text-small font-medium text-ink">
+                    {r.name} = {JSON.stringify(r.value)}
+                  </code>
+                  <p className="mt-0.5 max-w-prose text-ink-muted">{r.reason}</p>
                 </li>
               ))}
             </ul>
             {proposal.reasoning.length === 0 && <EmptyState>Nothing inferred; defaults apply.</EmptyState>}
             <Button
+              variant="primary"
               className="mt-3"
               disabled={proposal.blocked}
               onClick={() =>

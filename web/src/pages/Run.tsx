@@ -52,7 +52,9 @@ function byName(reasoning: ProposedParameter[]): Record<string, ProposedParamete
 
 function StepBar({ step, onGo }: { step: Step; onGo: (s: Step) => void }) {
   return (
-    <ol className="mb-3 flex flex-wrap items-center gap-1 text-small">
+    // The number is a marker rather than part of the label, so where you are in
+    // a four-step form is readable without reading any of the words.
+    <ol className="mb-4 flex flex-wrap items-center gap-x-1 gap-y-2 text-small">
       {STEPS.map((label, i) => {
         const state = i === step ? "current" : i < step ? "done" : "todo";
         return (
@@ -61,18 +63,35 @@ function StepBar({ step, onGo }: { step: Step; onGo: (s: Step) => void }) {
               type="button"
               // Only backwards: a step you have not reached has nothing in it yet.
               disabled={i >= step}
+              aria-current={state === "current" ? "step" : undefined}
               onClick={() => onGo(i as Step)}
-              className={`rounded px-2 py-0.5 ${
-                state === "current"
-                  ? "bg-accent-soft font-medium text-accent"
-                  : state === "done"
-                    ? "text-ink-muted hover:bg-surface-sunken hover:text-ink"
-                    : "text-ink-muted opacity-50"
-              }`}
+              className={`flex items-center gap-1.5 rounded-control py-0.5 pr-2 pl-0.5
+                transition-colors ${
+                  state === "current"
+                    ? "bg-accent-soft font-medium text-accent-ink"
+                    : state === "done"
+                      ? "text-ink-muted hover:bg-surface-hover hover:text-ink"
+                      : "cursor-default text-ink-muted opacity-60"
+                }`}
             >
-              {i + 1}. {label}
+              <span
+                aria-hidden="true"
+                className={`flex h-4.5 w-4.5 items-center justify-center rounded-full text-micro
+                  font-semibold tabular ${
+                    state === "current"
+                      ? "bg-accent text-white"
+                      : state === "done"
+                        ? "bg-surface text-ink-muted ring-1 ring-line"
+                        : "bg-surface-sunken text-ink-muted ring-1 ring-line-subtle"
+                  }`}
+              >
+                {i + 1}
+              </span>
+              {label}
             </button>
-            {i < STEPS.length - 1 && <span aria-hidden="true" className="text-ink-muted">→</span>}
+            {i < STEPS.length - 1 && (
+              <span aria-hidden="true" className="h-px w-4 bg-line" />
+            )}
           </li>
         );
       })}
@@ -235,7 +254,7 @@ export function Run() {
               `python -m dbsspeech seed`.
             </EmptyState>
           ) : (
-            <ul className="space-y-1">
+            <ul className="space-y-2">
               {subjects.map((s) => {
                 const approved = selectable(s);
                 return (
@@ -244,11 +263,12 @@ export function Run() {
                       type="button"
                       disabled={!approved}
                       onClick={() => { setSubject(s); setStep(1); }}
-                      className={`w-full rounded border px-3 py-2 text-left ${
-                        approved
-                          ? "border-line hover:bg-surface-sunken"
-                          : "border-line-subtle opacity-70"
-                      }`}
+                      className={`w-full rounded-card border px-3 py-2 text-left transition-colors
+                        ${
+                          approved
+                            ? "border-line bg-surface hover:border-accent hover:bg-accent-soft"
+                            : "cursor-not-allowed border-line-subtle bg-surface-sunken"
+                        }`}
                     >
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="font-medium">{subjectKey(s)}</span>
@@ -260,7 +280,8 @@ export function Run() {
                         </span>
                       </span>
                       {!approved && (
-                        <span className="mt-1 block text-small text-warn-ink">
+                        <span className="mt-1 block border-l-2 border-warn-line pl-2 text-small
+                          text-warn-ink">
                           QC review is not signed, so the gate refuses every run on this
                           subject. Open its QC page to review and sign.
                         </span>
@@ -321,7 +342,11 @@ export function Run() {
               Runs on this machine. No model call, and nothing about a recording leaves it.
             </span>
           </div>
-          {error && <p className="mt-2 text-body text-danger">{error}</p>}
+          {error && (
+            <p className="mt-3 rounded-control bg-danger-soft px-2 py-1.5 text-body text-danger-ink">
+              {error}
+            </p>
+          )}
         </Panel>
       </>
     );
@@ -375,7 +400,9 @@ export function Run() {
             <Panel title="It could not work these out">
               <ul className="space-y-1">
                 {proposal.questions.map((q) => (
-                  <li key={q} className="text-body text-warn-ink">{q}</li>
+                  <li key={q} className="border-l-2 border-warn-line pl-2 text-body text-warn-ink">
+                    {q}
+                  </li>
                 ))}
               </ul>
             </Panel>
@@ -443,7 +470,9 @@ export function Run() {
             {proposal.caveats.length > 0 && (
               <ul className="mt-2 space-y-1">
                 {proposal.caveats.map((c) => (
-                  <li key={c} className="text-small text-warn-ink">{c}</li>
+                  <li key={c} className="border-l-2 border-warn-line pl-2 text-small text-warn-ink">
+                    {c}
+                  </li>
                 ))}
               </ul>
             )}
@@ -498,7 +527,11 @@ export function Run() {
           {blockers.map((b) => (
             <p key={b} className="text-small text-ink-muted">{b}</p>
           ))}
-          {error && <p className="text-body text-danger">{error}</p>}
+          {error && (
+            <p className="rounded-control bg-danger-soft px-2 py-1.5 text-body text-danger-ink">
+              {error}
+            </p>
+          )}
         </div>
       </>
     );
@@ -523,7 +556,8 @@ export function Run() {
               <div className="mt-2"><GuardrailList hits={handle.findings} /></div>
             )}
             {handle.status === "failed" && (
-              <pre className="mt-2 overflow-x-auto rounded bg-surface-sunken p-2 text-small">
+              <pre className="mt-2 overflow-x-auto rounded-card bg-surface-sunken p-2 text-small
+                leading-relaxed">
                 {handle.error}
               </pre>
             )}

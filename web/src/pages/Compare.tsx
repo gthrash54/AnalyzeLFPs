@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { Comparison, RunSummaryRow } from "../api/types";
 import { Badge, EmptyState, Panel } from "../components/ui";
+import { inputClass } from "../components/ui/tones";
 
 const show = (v: unknown) =>
   v === undefined ? <i className="text-ink-muted">unset</i> : JSON.stringify(v);
@@ -50,7 +51,7 @@ export function Compare() {
 
   const selector = (side: "a" | "b", value: string) => (
     <select
-      className="w-full rounded border border-line px-2 py-1 text-small"
+      className={inputClass}
       value={value}
       onChange={(e) => pick(side, e.target.value)}
     >
@@ -71,16 +72,20 @@ export function Compare() {
     <div className="space-y-3">
       <Panel>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div>
+          <label className="block">
             <span className="text-small font-medium text-ink">A</span>
             {selector("a", a)}
-          </div>
-          <div>
+          </label>
+          <label className="block">
             <span className="text-small font-medium text-ink">B</span>
             {selector("b", b)}
-          </div>
+          </label>
         </div>
-        {error && <p className="mt-2 text-body text-danger">{error}</p>}
+        {error && (
+          <p className="mt-3 rounded-control bg-danger-soft px-2 py-1.5 text-body text-danger-ink">
+            {error}
+          </p>
+        )}
       </Panel>
 
       {!comparison && <Panel title="Difference"><EmptyState>Pick two runs.</EmptyState></Panel>}
@@ -104,9 +109,11 @@ export function Compare() {
               )}
             </div>
 
-            <label className="mb-2 flex items-center gap-2 text-small text-ink-muted">
+            <label className="mb-2 flex w-fit items-center gap-2 text-small text-ink-muted
+              transition-colors hover:text-ink">
               <input
                 type="checkbox"
+                className="accent-accent"
                 checked={onlyChanged}
                 onChange={(e) => setOnlyChanged(e.target.checked)}
               />
@@ -116,23 +123,37 @@ export function Compare() {
             {rows.length === 0 ? (
               <EmptyState>No parameters differ.</EmptyState>
             ) : (
-              <table className="w-full text-small">
-                <thead className="text-left text-ink-muted">
-                  <tr><th className="py-1">parameter</th><th>A</th><th>B</th></tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr
-                      key={row.param}
-                      className={`border-t border-line-subtle ${row.changed ? "bg-warn-soft" : ""}`}
-                    >
-                      <td className="py-1 pr-2 font-medium text-ink">{row.param}</td>
-                      <td className="py-1 pr-2 text-ink">{show(row.a)}</td>
-                      <td className="py-1 text-ink">{show(row.b)}</td>
+              <div className="-mx-3 -mb-3 overflow-x-auto">
+                <table className="w-full min-w-xl border-collapse text-body">
+                  <thead className="bg-surface-sunken text-left text-small text-ink-muted">
+                    <tr>
+                      <th scope="col" className="border-y border-line px-2 py-2 font-medium">
+                        parameter
+                      </th>
+                      <th scope="col" className="border-y border-line px-2 py-2 font-medium">A</th>
+                      <th scope="col" className="border-y border-line px-2 py-2 font-medium">B</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr
+                        key={row.param}
+                        className={`border-b border-line-subtle last:border-0 ${
+                          row.changed ? "bg-warn-soft" : ""
+                        }`}
+                      >
+                        <td className="px-2 py-2 font-medium text-ink">{row.param}</td>
+                        <td className="px-2 py-2 font-mono text-small tabular text-ink">
+                          {show(row.a)}
+                        </td>
+                        <td className="px-2 py-2 font-mono text-small tabular text-ink">
+                          {show(row.b)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </Panel>
 
@@ -140,8 +161,8 @@ export function Compare() {
             <div className="grid gap-3 sm:grid-cols-2 text-body">
               {[comparison.a, comparison.b].map((side) => (
                 <div key={side.run_id}>
-                  <div className="text-small text-ink-muted">{side.run_id}</div>
-                  <p className="text-ink">{side.claim}</p>
+                  <div className="font-mono text-micro text-ink-muted">{side.run_id}</div>
+                  <p className="mt-1 max-w-prose text-ink">{side.claim}</p>
                 </div>
               ))}
             </div>
@@ -154,15 +175,15 @@ export function Compare() {
               <div className="space-y-4">
                 {comparison.shared_figures.map((name) => (
                   <div key={name}>
-                    <div className="mb-1 text-small text-ink-muted">{name}</div>
+                    <div className="mb-1 font-mono text-small text-ink-muted">{name}</div>
                     <div className="grid gap-2 sm:grid-cols-2">
                       <img
-                        className="w-full rounded border border-line-subtle"
+                        className="w-full rounded-card border border-line-subtle bg-surface"
                         src={api.fileUrl(comparison.a.run_id, name)}
                         alt={`A ${name}`}
                       />
                       <img
-                        className="w-full rounded border border-line-subtle"
+                        className="w-full rounded-card border border-line-subtle bg-surface"
                         src={api.fileUrl(comparison.b.run_id, name)}
                         alt={`B ${name}`}
                       />

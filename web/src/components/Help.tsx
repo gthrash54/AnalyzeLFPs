@@ -108,13 +108,24 @@ export function Help() {
   if (!found) return null;
 
   return (
-    <details className="mb-3 rounded border border-line-subtle bg-surface-sunken px-3 py-2">
-      <summary className="cursor-pointer text-small font-medium text-ink-muted hover:text-ink">
+    <details className="group mb-4 rounded-card border border-line-subtle bg-surface-sunken">
+      <summary
+        className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small font-medium
+          text-ink-muted transition-colors hover:text-ink"
+      >
+        {/* The marker is drawn here rather than left to the browser, which gives
+            three different triangles on three platforms. */}
+        <span
+          aria-hidden="true"
+          className="text-micro text-ink-muted transition-transform group-open:rotate-90"
+        >
+          ▶
+        </span>
         {found.topic.title}
       </summary>
-      <div className="mt-2 space-y-1.5">
+      <div className="space-y-2 border-t border-line-subtle px-3 py-2">
         {found.topic.body.map((line) => (
-          <p key={line} className="text-small leading-relaxed text-ink-muted">
+          <p key={line} className="max-w-prose text-small leading-relaxed text-ink-muted">
             {line}
           </p>
         ))}

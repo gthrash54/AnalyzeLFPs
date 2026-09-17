@@ -93,3 +93,7 @@ dist/
 #   docs/review/                 the security audit, including findings still open
 /docs/review/
 *-PRIVATE.md
+
+# Screenshots taken while working on the interface. Useful next to a diff, not
+# part of the app.
+/.ui-polish-screenshots/

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { RunRecord } from "../api/types";
-import { Badge, EmptyState, Panel } from "../components/ui";
+import { Badge, EmptyState, Panel, Skeleton } from "../components/ui";
 import { severityTone } from "../components/ui/tones";
 
 export function Result() {
@@ -14,8 +14,16 @@ export function Result() {
     api.run(runId).then(setRecord).catch((e: Error) => setError(e.message));
   }, [runId]);
 
-  if (error) return <Panel title="Result"><p className="text-body text-danger">{error}</p></Panel>;
-  if (!record) return <Panel title="Result"><EmptyState>Loading…</EmptyState></Panel>;
+  if (error) {
+    return (
+      <Panel title="Result">
+        <p className="rounded-control bg-danger-soft px-2 py-1.5 text-body text-danger-ink">
+          {error}
+        </p>
+      </Panel>
+    );
+  }
+  if (!record) return <Panel title="Result"><Skeleton rows={4} /></Panel>;
 
   const figures = record.outputs.filter((o) => o.endsWith(".png"));
   const tables = record.outputs.filter((o) => o.endsWith(".csv") || o.endsWith(".parquet"));
@@ -35,12 +43,17 @@ export function Result() {
         )}
       </Panel>
 
-      {(record.guardrails.findings?.length ||
+      {/* Boolean(), because `0 && <jsx>` renders the zero: a run with an empty
+          findings list printed a bare "0" where the panel should not have
+          been at all. */}
+      {Boolean(
+        record.guardrails.findings?.length ||
         record.guardrails.overrides?.length ||
         record.guardrails.after?.findings?.length ||
-        record.guardrails.after?.overrides?.length) && (
+        record.guardrails.after?.overrides?.length,
+      ) && (
         <Panel title="Guardrails">
-          <ul className="space-y-1 text-body">
+          <ul className="space-y-1.5 text-body">
             {record.guardrails.findings?.map((f) => (
               <li key={f.guardrail} className="flex gap-2">
                 <Badge tone={severityTone(f.severity)}>{f.severity}</Badge>
@@ -56,23 +69,25 @@ export function Result() {
           </ul>
           {/* Checks that needed the result. Labelled rather than merged, so a
               reader can see which findings were available before the run. */}
-          {(record.guardrails.after?.findings?.length ||
-            record.guardrails.after?.overrides?.length) && (
-            <div className="mt-3 border-t border-stone-200 pt-3">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-stone-500">
+          {Boolean(
+            record.guardrails.after?.findings?.length ||
+            record.guardrails.after?.overrides?.length,
+          ) && (
+            <div className="mt-3 border-t border-line-subtle pt-3">
+              <p className="mb-1.5 text-micro font-semibold uppercase tracking-wider text-ink-muted">
                 Checked after the run
               </p>
-              <ul className="space-y-1 text-sm">
+              <ul className="space-y-1.5 text-body">
                 {record.guardrails.after?.findings?.map((f) => (
                   <li key={f.guardrail} className="flex gap-2">
                     <Badge tone={severityTone(f.severity)}>{f.severity}</Badge>
-                    <span className="text-stone-700">{f.message}</span>
+                    <span className="text-ink">{f.message}</span>
                   </li>
                 ))}
                 {record.guardrails.after?.overrides?.map((o) => (
                   <li key={o.guardrail} className="flex gap-2">
                     <Badge tone="warn">overridden</Badge>
-                    <span className="text-stone-700"><code>{o.guardrail}</code>: {o.reason}</span>
+                    <span className="text-ink"><code>{o.guardrail}</code>: {o.reason}</span>
                   </li>
                 ))}
               </ul>
@@ -99,7 +114,14 @@ export function Result() {
           <ul className="space-y-1 text-body">
             {tables.map((t) => (
               <li key={t}>
-                <a className="text-ink underline" href={api.fileUrl(runId, t)} download>{t}</a>
+                        <a
+                  className="font-mono text-small text-accent underline
+                    underline-offset-2 hover:text-accent-ink"
+                  href={api.fileUrl(runId, t)}
+                  download
+                >
+                  {t}
+                </a>
               </li>
             ))}
           </ul>
@@ -107,7 +129,8 @@ export function Result() {
       </Panel>
 
       <Panel title="Parameters">
-        <pre className="overflow-x-auto rounded bg-surface-sunken p-2 text-small">
+        <pre className="-mx-3 -my-3 overflow-x-auto rounded-card bg-surface-sunken p-3 text-small
+          leading-relaxed text-ink">
           {JSON.stringify(record.params, null, 2)}
         </pre>
       </Panel>
