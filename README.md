@@ -4,14 +4,28 @@ Analysis for intraoperative deep brain stimulation and ECoG recordings: the
 subcortical recordings made during electrode implantation, with speech, movement
 and stimulation conditions.
 
-It exists for graduate students or post docs that are beginners in signal analysis. 
+It exists for graduate students and postdocs who are new to signal analysis.
 
+## Start here
+
+| If you want to... | Go to |
+|---|---|
+| **Try the app in ten minutes**, with a synthetic subject and no recordings | [Ten minutes, no recordings needed](#ten-minutes-no-recordings-needed) |
+| **Learn the math** behind the analysis: 46 notebook lessons, student and solution versions | [`curriculum/README.md`](curriculum/README.md) |
+| **Understand what it does and why** | [What it does](#what-it-does), then [`docs/concepts.md`](docs/concepts.md) |
+| **Use your own recordings** | [Using your own recordings](#using-your-own-recordings) and [`docs/schema.md`](docs/schema.md) |
+| **Read the full documentation** | [Documentation](#documentation) |
+| **Run it for a lab** | [`docs/deploy.md`](docs/deploy.md) |
+| **See the author's other work** | [garrettthrash.com](https://garrettthrash.com) |
 
 It also carries a **curriculum**: 46 lessons on the mathematics behind the
 analysis, at graduate level, in `curriculum/`, surfaced by the Learn section of
-the app, and executed on every commit. I have created a built in python curriculum in a Jupyter notebook. Hopefully YT walkthroughs will follow. 
+the app, and executed on every commit. The lessons are Jupyter notebooks with a
+student workbook and a solutions guide for each; video walkthroughs may follow.
 
-**I am an MD grad pursuing my PhD in Neuroengineering so content mistakes are possible. I tried double checkign with LLMs but please reach out if you find any mistakes at garrettthrash54@gmail.com**
+**I am an MD graduate pursuing a PhD in Neuroengineering, so content mistakes are
+possible. I double-checked with LLMs, but please reach out if you find any at
+garrettthrash54@gmail.com.**
 
 This curriculum provides signal analysis and Neuroengineering fundamentals for students beginning their neuroscience journey.
 
