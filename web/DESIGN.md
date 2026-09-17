@@ -32,6 +32,7 @@ everywhere. Use the token, never a raw palette value: `text-muted`, not
 | `border-subtle` | stone 200 | rules inside a panel, row separators |
 | `text` | stone 900 | body text and numbers |
 | `text-muted` | stone 500 | labels, hints, secondary columns |
+| `surface-hover` | stone 50 | the row or control under the pointer |
 | `accent` | teal 700 | links, the primary button, the active nav item |
 | `ok` | emerald 700 | approved, run succeeded |
 | `warn` | amber 700 | needs attention, overridden, dirty tree |
@@ -40,8 +41,10 @@ everywhere. Use the token, never a raw palette value: `text-muted`, not
 Teal rather than blue for the accent because blue reads as a hyperlink from the
 1990s and because the status colors need the cool end of the range left alone.
 
-Every status color has a `-soft` background variant for badges. Text on a soft
-background uses the 900 weight of the same hue, which clears 7:1 contrast.
+Every status color has a `-soft` background variant for badges, a `-line` variant
+for the ring around one and for the rule down the edge of a warning, and an `-ink`
+variant, the 900 weight of the same hue, for text on the soft background. That
+combination clears 7:1.
 
 ### Type scale
 
@@ -49,7 +52,7 @@ Five sizes. If a sixth seems necessary, the layout is the problem.
 
 | token | size / line height | used for |
 |---|---|---|
-| `text-display` | 18px / 24px | the page title, once per screen |
+| `text-display` | 20px / 28px | the page title, once per screen |
 | `text-heading` | 14px / 20px, 600 | panel titles |
 | `text-body` | 13px / 18px | everything ordinary |
 | `text-small` | 12px / 16px | labels, hints, table headers |
@@ -66,6 +69,30 @@ A 4px base: `1` = 4px, `2` = 8px, `3` = 12px, `4` = 16px, `6` = 24px. Panels use
 `3` inside and `3` between. Table cells use `2` vertically and `2` horizontally.
 Nothing uses a value off this scale.
 
+## Radius and elevation
+
+Two radii, so a panel and the control inside it never disagree about how round a
+corner is. `rounded-card` (6px) is every bounded region: panels, cards, images,
+code blocks. `rounded-control` (4px) is anything you click or type into: buttons,
+badges, inputs, nav items.
+
+There is one elevation, `shadow-hairline`, and it is a 1px line rather than a drop
+shadow. It is used twice: under the app header, and under a sticky table header
+while rows scroll beneath it. A panel sitting on the canvas is a border, not a
+shadow. Nothing else casts one.
+
+## Layout
+
+The app is a header and two columns inside a `max-w-6xl` measure. The nav is
+grouped by what the screens are for: Analyze, Records, Reference. Below `md` the
+nav column becomes a horizontal scrolling row under the header, because a 160px
+sidebar beside a table on a 400px screen leaves neither of them usable.
+
+A table is the one thing allowed to be wider than the content column. It has a
+floor on its width and scrolls sideways inside its panel below that, which is the
+alternative to squeezing the last column to three characters and making every row
+eight lines tall.
+
 ## Components
 
 In `src/components/ui/`. A page composes these; a page does not write its own
@@ -78,8 +105,9 @@ signal the component is missing something.
 | `Panel` | a titled region with an optional hint under the title |
 | `DataTable` | a dense table: sortable columns, sticky header, zebra-free rows separated by rules |
 | `Badge` | one word of status, in a status color |
-| `Button` | primary, secondary, danger, in one size |
+| `Button` | primary, secondary, danger, in one size, each with a pressed state |
 | `Field` | a labelled input with help text and an optional caveat |
+| `Mono` | an identifier or a measured number, inline |
 | `EmptyState` | what to see when there is nothing, and what to do about it |
 | `Skeleton` | the shape of content that has not arrived |
 
@@ -94,6 +122,14 @@ keyboard.
 Long identifiers such as run ids do not wrap; they are monospace and the cell
 scrolls if it must. A table wider than its container scrolls horizontally inside
 the panel rather than widening the page.
+
+Two input styles are exported from `ui/tones.ts` rather than one:
+`inputClass` for a field under its own label, and `inlineInputClass` for the same
+control in a row of controls. An override on the full-width one does not work,
+because Tailwind settles a `w-full` against `w-auto` collision by stylesheet order
+rather than by the order the classes are written in. `linkButtonClass` is there for
+the two places where the next step is a different page, so an `<a>` can look like
+the `Button` beside it without becoming a `<div>` with a click handler.
 
 ### Badge conventions
 
@@ -124,6 +160,9 @@ The floor, not the ambition.
 
 ## Dark mode
 
-Not done. It would need a second value for every token and a check of the status
-colors against a dark ground, and nobody has asked. The tokens are defined in one
-place so that it stays cheap to add.
+Not done, and deliberately so rather than for want of time. It would need a second
+value for every token, a check of each status color against a dark ground, and an
+answer for the figures: the app renders light-background matplotlib PNGs, and on a
+dark page they read as holes punched through it. The tokens are defined in one place
+so that it stays cheap to add on the day someone asks and those questions get
+answered.

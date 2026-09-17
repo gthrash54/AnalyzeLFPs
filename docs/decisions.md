@@ -3703,3 +3703,23 @@ them is exactly what put two grids in one table.
 
 The demo's `bandpower_contrast` parameters gain `window_s: 0.5` to match their
 `epoch_s`, so the walkthrough stops teaching the contradiction.
+
+## 2026-09-17 The web interface keeps one light theme, and the tokens carry it
+
+The interface was tidied rather than restyled: the rules in `web/DESIGN.md` still
+hold, and nothing in it was reversed. What changed is that the tokens now cover the
+things pages were deciding for themselves. Two radii (`card`, `control`) and a
+hairline elevation join the color roles and the type scale, the display size grew
+from 18px to 20px so a page title is unmistakably one beside a panel title, and the
+curriculum screens were moved off raw palette values onto the same roles, which is
+what made them look like a different product.
+
+Dark mode is still not done, and this was the moment to decide it either way. It
+stays undone: every status color would need checking against a dark ground, and the
+figures the app renders are light-background matplotlib PNGs that would sit on a dark
+page looking like holes. One theme executed properly beats two half-checked.
+
+The nav is grouped rather than flat, and below about 768px it becomes a scrolling row
+above the content instead of a column squeezing it. The one behavior change is a
+fix: `/runs` matched the `/run` nav entry first, so the run log was titled "Run".
+

@@ -195,20 +195,20 @@ export function Learn() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Courses, in their groups. One tablist, so the arrow keys still walk the
           whole set; the group labels are presentational and out of the tab order. */}
       <div
         role="tablist"
         aria-label="Courses"
         onKeyDown={moveTabFocus}
-        className="flex gap-4 overflow-x-auto pb-1 border-b border-stone-200"
+        className="flex gap-5 overflow-x-auto border-b border-line pb-2"
       >
         {groups.map((group) => (
           <div key={group.name} className="flex flex-col gap-1">
             <span
               aria-hidden="true"
-              className="whitespace-nowrap px-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400"
+              className="whitespace-nowrap px-1 text-micro font-semibold uppercase tracking-wider text-ink-muted"
             >
               {group.name}
             </span>
@@ -230,11 +230,12 @@ export function Learn() {
                     setSelectedCourse(course.id);
                     setSelectedLesson(course.lessons[0].id);
                   }}
-                  className={`whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                    selectedCourse === course.id
-                      ? "bg-stone-900 text-white shadow-xs"
-                      : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                  }`}
+                  className={`whitespace-nowrap rounded-control px-2.5 py-1 text-small font-medium
+                    transition-colors ${
+                      selectedCourse === course.id
+                        ? "bg-accent text-white"
+                        : "bg-surface text-ink-muted ring-1 ring-inset ring-line hover:bg-surface-hover hover:text-ink"
+                    }`}
                 >
                   {course.short}
                 </button>
@@ -245,10 +246,9 @@ export function Learn() {
       </div>
 
       {/* Track Title & Module Selector */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-stone-50 p-3 rounded-lg border border-stone-200">
-        <p className="text-xs font-semibold text-stone-800 uppercase tracking-wide">
-          {currentCourse.title}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border
+        border-line bg-surface-sunken p-3">
+        <p className="text-heading font-semibold text-ink">{currentCourse.title}</p>
         <div
           role="tablist"
           aria-label={currentCourse.title}
@@ -266,13 +266,14 @@ export function Learn() {
               title={lesson.title}
               onClick={() => setSelectedLesson(lesson.id)}
               disabled={!lesson.active}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium transition-all ${
-                selectedLesson === lesson.id
-                  ? "bg-cyan-700 text-white shadow-xs"
-                  : lesson.active
-                  ? "bg-white text-stone-700 border border-stone-300 hover:bg-stone-100"
-                  : "bg-stone-200 text-stone-600 cursor-not-allowed"
-              }`}
+              className={`rounded-control px-2 py-1 font-mono text-micro font-medium
+                transition-colors ${
+                  selectedLesson === lesson.id
+                    ? "bg-accent text-white"
+                    : lesson.active
+                      ? "border border-line bg-surface text-ink hover:bg-surface-hover"
+                      : "cursor-not-allowed border border-line-subtle bg-surface-sunken text-ink-muted"
+                }`}
             >
               {lesson.title.split(":")[0]}
             </button>
@@ -305,9 +306,13 @@ export function Learn() {
       ) : NOTEBOOK_MODULES[selectedLesson] ? (
         <NotebookModule {...NOTEBOOK_MODULES[selectedLesson]} />
       ) : (
-        <div className="rounded-xl border border-stone-200 bg-white p-12 text-center text-stone-500">
-          <p className="text-sm font-medium">This module is currently in syllabus design.</p>
-          <p className="mt-1 text-xs">Switch to LIN 1, LIN 2, LIN 3, SIG 1, SIG 2, or PRE 1 to explore the interactive simulators.</p>
+        <div className="rounded-card border border-dashed border-line bg-surface px-4 py-10
+          text-center">
+          <p className="text-body font-medium text-ink">This module is in syllabus design.</p>
+          <p className="mx-auto mt-1 max-w-prose text-small text-ink-muted">
+            Switch to LIN 1, LIN 2, LIN 3, SIG 1, SIG 2, or PRE 1 to explore the interactive
+            simulators.
+          </p>
         </div>
       )}
       </div>
